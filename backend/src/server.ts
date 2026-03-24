@@ -17,6 +17,7 @@ import "./models/User";
 import "./models/Student";
 import "./models/Fingerprint";
 import "./models/StudentDocument";
+import "./models/AdminDetail";
 
 dotenv.config();
 

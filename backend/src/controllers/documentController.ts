@@ -38,7 +38,7 @@ export const listDocuments = async (req: AuthRequest, res: Response): Promise<Re
   }
 };
 
-// POST /api/documents/:studentId - Upload a document
+// POST /api/documents/:studentId - Upload a document (one per student, replaces existing)
 export const uploadDocument = async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const { studentId } = req.params;
@@ -52,6 +52,16 @@ export const uploadDocument = async (req: AuthRequest, res: Response): Promise<R
     const student = await Student.findById(studentId);
     if (!student) {
       return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    // Remove existing document if any (one doc per student)
+    const existing = await StudentDocument.findOne({ studentId });
+    if (existing) {
+      const oldPath = path.join(DOCS_DIR, existing.filename);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+      await StudentDocument.findByIdAndDelete(existing._id);
     }
 
     const doc = new StudentDocument({

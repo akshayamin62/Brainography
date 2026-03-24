@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import Student from "../models/Student";
+import StudentDocument from "../models/StudentDocument";
 import User from "../models/User";
 
 // GET /api/students - List students
@@ -18,7 +19,18 @@ export const listStudents = async (req: AuthRequest, res: Response): Promise<Res
       .populate("adminId", "name email")
       .sort({ createdAt: -1 });
 
-    return res.json({ success: true, data: students });
+    // Get document status for all students
+    const studentIds = students.map(s => s._id);
+    const docs = await StudentDocument.find({ studentId: { $in: studentIds } });
+    const docMap = new Map(docs.map(d => [d.studentId.toString(), { _id: d._id, filename: d.filename, originalName: d.originalName }]));
+
+    const studentsWithDocs = students.map(s => {
+      const obj = s.toObject();
+      (obj as any).document = docMap.get(s._id.toString()) || null;
+      return obj;
+    });
+
+    return res.json({ success: true, data: studentsWithDocs });
   } catch (err) {
     console.error("List students error:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });

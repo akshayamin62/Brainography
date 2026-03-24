@@ -1,24 +1,54 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import SuperAdminLayout from '@/components/SuperAdminLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { adminAPI } from '@/lib/api';
 import { User } from '@/types';
+import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function AdminsPage() {
   const { user, loading } = useAuth('SUPER_ADMIN');
+  const router = useRouter();
   const [admins, setAdmins] = useState<User[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<User | null>(null);
-  const [formName, setFormName] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formPhone, setFormPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
+
+  // Form fields
+  const [fFirstName, setFFirstName] = useState('');
+  const [fMiddleName, setFMiddleName] = useState('');
+  const [fLastName, setFLastName] = useState('');
+  const [fEmail, setFEmail] = useState('');
+  const [fCountryCode, setFCountryCode] = useState('+91');
+  const [fMobile, setFMobile] = useState('');
+  const [fCompanyName, setFCompanyName] = useState('');
+  const [fAddress, setFAddress] = useState('');
+  const [fCountry, setFCountry] = useState('');
+  const [fState, setFState] = useState('');
+  const [fCity, setFCity] = useState('');
+
+  const countries = useMemo(() => Country.getAllCountries(), []);
+  const states = useMemo(() => fCountry ? State.getStatesOfCountry(fCountry) : [], [fCountry]);
+  const cities = useMemo(() => fCountry && fState ? City.getCitiesOfState(fCountry, fState) : [], [fCountry, fState]);
+
+  const phoneCodes = useMemo(() => {
+    const seen = new Set<string>();
+    return countries.filter(c => {
+      const code = c.phonecode.startsWith('+') ? c.phonecode : `+${c.phonecode}`;
+      if (seen.has(code)) return false;
+      seen.add(code);
+      return true;
+    }).map(c => ({
+      code: c.phonecode.startsWith('+') ? c.phonecode : `+${c.phonecode}`,
+      name: c.name,
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [countries]);
 
   const fetchAdmins = async () => {
     try {
@@ -34,20 +64,35 @@ export default function AdminsPage() {
   }, [user]);
 
   const resetForm = () => {
-    setFormName('');
-    setFormEmail('');
-    setFormPhone('');
+    setFFirstName(''); setFMiddleName(''); setFLastName('');
+    setFEmail(''); setFCountryCode('+91'); setFMobile('');
+    setFCompanyName(''); setFAddress('');
+    setFCountry(''); setFState(''); setFCity('');
   };
+
+  const getFormData = () => ({
+    firstName: fFirstName,
+    middleName: fMiddleName || undefined,
+    lastName: fLastName,
+    email: fEmail,
+    countryCode: fCountryCode,
+    phone: fMobile,
+    companyName: fCompanyName || undefined,
+    address: fAddress || undefined,
+    country: fCountry ? countries.find(c => c.isoCode === fCountry)?.name : undefined,
+    state: fState ? states.find(s => s.isoCode === fState)?.name : undefined,
+    city: fCity || undefined,
+  });
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName || !formEmail) {
-      toast.error('Name and email are required');
+    if (!fFirstName || !fLastName || !fEmail) {
+      toast.error('First name, last name, and email are required');
       return;
     }
     setSubmitting(true);
     try {
-      const res = await adminAPI.create({ name: formName, email: formEmail, phone: formPhone || undefined });
+      const res = await adminAPI.create(getFormData());
       if (res.data.success) {
         toast.success('Admin created successfully!');
         setShowAddModal(false);
@@ -66,7 +111,7 @@ export default function AdminsPage() {
     if (!editingAdmin) return;
     setSubmitting(true);
     try {
-      const res = await adminAPI.update(editingAdmin._id || editingAdmin.id || '', { name: formName, email: formEmail, phone: formPhone });
+      const res = await adminAPI.update(editingAdmin._id || editingAdmin.id || '', getFormData());
       if (res.data.success) {
         toast.success('Admin updated');
         setShowEditModal(false);
@@ -82,9 +127,26 @@ export default function AdminsPage() {
 
   const openEdit = (admin: User) => {
     setEditingAdmin(admin);
-    setFormName(admin.name);
-    setFormEmail(admin.email);
-    setFormPhone(admin.phone || '');
+    const d = admin.details;
+    setFFirstName(d?.firstName || admin.name?.split(' ')[0] || '');
+    setFMiddleName(d?.middleName || '');
+    setFLastName(d?.lastName || admin.name?.split(' ').slice(-1)[0] || '');
+    setFEmail(admin.email);
+    setFCountryCode(d?.countryCode || '+91');
+    setFMobile(admin.phone || '');
+    setFCompanyName(d?.companyName || '');
+    setFAddress(d?.address || '');
+    // Reverse-lookup country/state ISO codes from names
+    const countryMatch = countries.find(c => c.name === d?.country);
+    setFCountry(countryMatch?.isoCode || '');
+    if (countryMatch) {
+      const stateList = State.getStatesOfCountry(countryMatch.isoCode);
+      const stateMatch = stateList.find(s => s.name === d?.state);
+      setFState(stateMatch?.isoCode || '');
+    } else {
+      setFState('');
+    }
+    setFCity(d?.city || '');
     setShowEditModal(true);
   };
 
@@ -101,6 +163,93 @@ export default function AdminsPage() {
       </div>
     );
   }
+
+  const formFields = (
+    <>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+          <input type="text" value={fFirstName} onChange={(e) => setFFirstName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+          <input type="text" value={fMiddleName} onChange={(e) => setFMiddleName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+          <input type="text" value={fLastName} onChange={(e) => setFLastName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" required />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+        <input type="email" value={fEmail} onChange={(e) => setFEmail(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" required />
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Country Code</label>
+          <select value={fCountryCode} onChange={(e) => setFCountryCode(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900">
+            {phoneCodes.map((pc) => (
+              <option key={pc.code + pc.name} value={pc.code}>{pc.code} ({pc.name})</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+          <input type="text" value={fMobile} onChange={(e) => setFMobile(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+        <input type="text" value={fCompanyName} onChange={(e) => setFCompanyName(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+        <input type="text" value={fAddress} onChange={(e) => setFAddress(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" />
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+          <select value={fCountry} onChange={(e) => { setFCountry(e.target.value); setFState(''); setFCity(''); }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900">
+            <option value="">Select Country</option>
+            {countries.map((c) => (
+              <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+          <select value={fState} onChange={(e) => { setFState(e.target.value); setFCity(''); }}
+            disabled={!fCountry}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 disabled:opacity-50">
+            <option value="">Select State</option>
+            {states.map((s) => (
+              <option key={s.isoCode} value={s.isoCode}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+          <select value={fCity} onChange={(e) => setFCity(e.target.value)}
+            disabled={!fState}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 disabled:opacity-50">
+            <option value="">Select City</option>
+            {cities.map((c) => (
+              <option key={c.name} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <>
@@ -132,39 +281,42 @@ export default function AdminsPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Phone</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Company</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No admins found</td></tr>
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No admins found</td></tr>
                   ) : (
                     filtered.map((admin, idx) => (
                       <tr key={admin._id || admin.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 text-sm text-gray-500">{idx + 1}</td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{admin.name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{admin.email}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{admin.phone || '-'}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{admin.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{admin.email}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {admin.phone ? `${admin.details?.countryCode || ''} ${admin.phone}` : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{admin.details?.companyName || '-'}</td>
+                        <td className="px-4 py-3">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${admin.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                             {admin.isActive !== false ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => openEdit(admin)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => openEdit(admin)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -177,24 +329,10 @@ export default function AdminsPage() {
 
         {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 animate-scale-in">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-xl mx-4 animate-scale-in max-h-[90vh] overflow-y-auto">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Add New Admin</h2>
-              <form onSubmit={handleAdd} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                  <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input type="text" value={formPhone} onChange={(e) => setFormPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" />
-                </div>
+              <form onSubmit={handleAdd} className="space-y-3">
+                {formFields}
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={submitting}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
@@ -212,24 +350,10 @@ export default function AdminsPage() {
 
         {showEditModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 animate-scale-in">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-xl mx-4 animate-scale-in max-h-[90vh] overflow-y-auto">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Edit Admin</h2>
-              <form onSubmit={handleEdit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                  <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input type="text" value={formPhone} onChange={(e) => setFormPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" />
-                </div>
+              <form onSubmit={handleEdit} className="space-y-3">
+                {formFields}
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={submitting}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">

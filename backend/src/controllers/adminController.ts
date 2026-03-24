@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import User from "../models/User";
+import AdminDetail from "../models/AdminDetail";
 
 // GET /api/admins - List all admins (Super Admin only)
 export const listAdmins = async (_req: AuthRequest, res: Response): Promise<Response> => {
@@ -9,9 +10,38 @@ export const listAdmins = async (_req: AuthRequest, res: Response): Promise<Resp
       .select("-otp -otpExpires")
       .sort({ createdAt: -1 });
 
-    return res.json({ success: true, data: admins });
+    // Attach admin details
+    const adminIds = admins.map(a => a._id);
+    const details = await AdminDetail.find({ userId: { $in: adminIds } });
+    const detailMap = new Map(details.map(d => [d.userId.toString(), d]));
+
+    const adminsWithDetails = admins.map(a => {
+      const obj = a.toObject();
+      (obj as any).details = detailMap.get(a._id.toString()) || null;
+      return obj;
+    });
+
+    return res.json({ success: true, data: adminsWithDetails });
   } catch (err) {
     console.error("List admins error:", err);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// GET /api/admins/:id - Get single admin with details
+export const getAdmin = async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { id } = req.params;
+    const admin = await User.findById(id).select("-otp -otpExpires");
+    if (!admin || admin.role !== "ADMIN") {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+    const detail = await AdminDetail.findOne({ userId: id });
+    const obj = admin.toObject();
+    (obj as any).details = detail || null;
+    return res.json({ success: true, data: obj });
+  } catch (err) {
+    console.error("Get admin error:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -19,16 +49,18 @@ export const listAdmins = async (_req: AuthRequest, res: Response): Promise<Resp
 // POST /api/admins - Create a new admin (Super Admin only)
 export const createAdmin = async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
-    const { name, email, phone } = req.body;
+    const { firstName, middleName, lastName, email, phone, countryCode, companyName, address, country, state, city } = req.body;
 
-    if (!name || !email) {
-      return res.status(400).json({ success: false, message: "Name and email are required" });
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ success: false, message: "First name, last name, and email are required" });
     }
 
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) {
       return res.status(409).json({ success: false, message: "Email already in use" });
     }
+
+    const name = [firstName, middleName, lastName].filter(Boolean).join(" ");
 
     const admin = new User({
       name,
@@ -41,6 +73,22 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<Resp
 
     await admin.save();
 
+    // Save admin details
+    const detail = new AdminDetail({
+      userId: admin._id,
+      firstName,
+      middleName: middleName || "",
+      lastName,
+      countryCode: countryCode || "+91",
+      companyName: companyName || "",
+      address: address || "",
+      country: country || "",
+      state: state || "",
+      city: city || "",
+    });
+
+    await detail.save();
+
     return res.status(201).json({
       success: true,
       message: "Admin created successfully",
@@ -50,6 +98,7 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<Resp
         email: admin.email,
         phone: admin.phone,
         role: admin.role,
+        details: detail,
       },
     });
   } catch (err) {
@@ -62,7 +111,7 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<Resp
 export const updateAdmin = async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    const { name, email, phone, isActive } = req.body;
+    const { firstName, middleName, lastName, email, phone, isActive, countryCode, companyName, address, country, state, city } = req.body;
 
     const admin = await User.findById(id);
     if (!admin || admin.role !== "ADMIN") {
@@ -77,11 +126,33 @@ export const updateAdmin = async (req: AuthRequest, res: Response): Promise<Resp
       admin.email = email.toLowerCase();
     }
 
-    if (name) admin.name = name;
+    if (firstName || lastName) {
+      const name = [firstName, middleName, lastName].filter(Boolean).join(" ");
+      admin.name = name;
+    }
     if (phone !== undefined) admin.phone = phone;
     if (isActive !== undefined) admin.isActive = isActive;
 
     await admin.save();
+
+    // Update admin details
+    await AdminDetail.findOneAndUpdate(
+      { userId: id },
+      {
+        ...(firstName && { firstName }),
+        ...(middleName !== undefined && { middleName }),
+        ...(lastName && { lastName }),
+        ...(countryCode && { countryCode }),
+        ...(companyName !== undefined && { companyName }),
+        ...(address !== undefined && { address }),
+        ...(country !== undefined && { country }),
+        ...(state !== undefined && { state }),
+        ...(city !== undefined && { city }),
+      },
+      { upsert: true, new: true }
+    );
+
+    const detail = await AdminDetail.findOne({ userId: id });
 
     return res.json({
       success: true,
@@ -92,6 +163,7 @@ export const updateAdmin = async (req: AuthRequest, res: Response): Promise<Resp
         email: admin.email,
         phone: admin.phone,
         isActive: admin.isActive,
+        details: detail,
       },
     });
   } catch (err) {

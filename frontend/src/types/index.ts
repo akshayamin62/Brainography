@@ -3,6 +3,20 @@ export enum USER_ROLE {
   ADMIN = 'ADMIN',
 }
 
+export interface AdminDetail {
+  _id?: string;
+  userId: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  countryCode: string;
+  companyName?: string;
+  address?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+}
+
 export interface User {
   _id?: string;
   id?: string;
@@ -12,6 +26,7 @@ export interface User {
   role: USER_ROLE | string;
   isVerified: boolean;
   isActive?: boolean;
+  details?: AdminDetail | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -28,6 +43,7 @@ export interface Student {
   address: string;
   dob: string;
   gender: string;
+  document?: { _id: string; filename: string; originalName: string } | null;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -47,7 +47,8 @@ export const dashboardAPI = {
 
 export const adminAPI = {
   list: () => api.get('/admins'),
-  create: (data: { name: string; email: string; phone?: string }) =>
+  get: (id: string) => api.get(`/admins/${id}`),
+  create: (data: any) =>
     api.post('/admins', data),
   update: (id: string, data: any) =>
     api.put(`/admins/${id}`, data),
