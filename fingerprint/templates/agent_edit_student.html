@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.form-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+.form-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 20px 20px 0 0;
+}
+.form-container h2 {
+    color: #764ba2;
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+}
+.form-container h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 2px;
+}
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.form-group {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+label {
+    color: #4a4a4a;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: color 0.3s ease;
+}
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="date"],
+textarea,
+select {
+    padding: 1rem 1.25rem;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #333;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(5px);
+    transition: all 0.3s ease;
+    outline: none;
+    position: relative;
+}
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="date"]:focus,
+textarea:focus,
+select:focus {
+    border-color: #667eea;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+input[type="text"]:hover,
+input[type="email"]:hover,
+input[type="tel"]:hover,
+input[type="date"]:hover,
+textarea:hover,
+select:hover {
+    border-color: rgba(102, 126, 234, 0.4);
+    background: rgba(255, 255, 255, 0.9);
+}
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+input[type="submit"], .submit-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+input[type="submit"]:hover, .submit-btn:hover {
+    background: linear-gradient(135deg, #5a6fd8, #6a4190);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+input[type="submit"]:active, .submit-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+input[type="submit"]::before, .submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+input[type="submit"]:hover::before, .submit-btn:hover::before {
+    left: 100%;
+}
+.gender-options {
+    display: flex;
+    gap: 20px;
+    margin-top: 8px;
+}
+.gender-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.gender-option input[type="radio"] {
+    width: auto;
+    margin: 0;
+}
+.gender-option label {
+    margin: 0;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: normal;
+    color: #666;
+}
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    .form-container {
+        padding: 2rem 1.5rem;
+        border-radius: 16px;
+    }
+    .form-container h2 {
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+    }
+    form {
+        gap: 1.25rem;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="date"] {
+        padding: 0.875rem 1rem;
+        font-size: 0.95rem;
+    }
+    input[type="submit"], .submit-btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 0.95rem;
+    }
+}
+@media (max-width: 480px) {
+    .form-container {
+        padding: 1.5rem 1rem;
+        border-radius: 12px;
+    }
+    .form-container h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1.25rem;
+    }
+    form {
+        gap: 1rem;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="date"] {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+    input[type="submit"], .submit-btn {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+    label {
+        font-size: 0.8rem;
+        margin-bottom: 0.4rem;
+    }
+}
+</style>
+
+<div class="form-container">
+    <h2>Edit Student</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-grid">
+            <div class="form-group">
+                {{ form.name.label }}
+                {{ form.name() }}
+            </div>
+            <div class="form-group">
+                {{ form.parent_name.label }}
+                {{ form.parent_name() }}
+            </div>
+            <div class="form-group">
+                {{ form.mobile.label }}
+                {{ form.mobile() }}
+            </div>
+            <div class="form-group">
+                {{ form.email.label }}
+                {{ form.email() }}
+            </div>
+            <div class="form-group">
+                {{ form.university.label }}
+                {{ form.university() }}
+            </div>
+            <div class="form-group">
+                {{ form.standard.label }}
+                {{ form.standard() }}
+            </div>
+            <div class="form-group">
+                {{ form.dob.label }}
+                {{ form.dob() }}
+            </div>
+            <div class="form-group full-width">
+                {{ form.address.label }}
+                {{ form.address() }}
+            </div>
+            <div class="form-group full-width">
+                {{ form.gender.label }}
+                <div class="gender-options">
+                    {% for subfield in form.gender %}
+                        <div class="gender-option">
+                            {{ subfield() }}
+                            {{ subfield.label }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {{ form.submit(class="submit-btn") }}
+    </form>
+</div>
+{% endblock %}

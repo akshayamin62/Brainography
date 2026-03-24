@@ -1,0 +1,935 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+/* Container Styles */
+.fingerprint-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    margin: 1rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.student-info {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 12px;
+}
+
+/* Download Button Styles */
+.download-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.download-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    color: white;
+    text-decoration: none;
+}
+
+.download-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.download-btn i {
+    font-size: 1rem;
+}
+
+/* Fingerprint Layout - Updated for 3-box structure */
+.fingerprint-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+.hand-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.hand-title {
+    text-align: center;
+    color: #764ba2;
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+}
+
+.hand-title::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 2px;
+}
+
+.fingers-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.finger-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(102, 126, 234, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.finger-label-main {
+    min-width: 80px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: white;
+    text-align: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 0.75rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.finger-types {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    justify-content: space-around;
+}
+
+.finger-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.25rem;
+    border: 2px dashed #ddd;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    min-height: 140px;
+    min-width: 120px;
+    position: relative;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.finger-box:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+}
+
+.finger-box.has-print {
+    border-color: #2ecc71;
+    background: rgba(46, 204, 113, 0.05);
+    border-style: solid;
+}
+
+.finger-type-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+.finger-box img {
+    max-width: 70px;
+    max-height: 70px;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    border: 2px solid #ddd;
+    background: #f8f9fa;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.finger-box img:hover {
+    transform: scale(1.15);
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Scan Button */
+.scan-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.scan-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, #5a6fd8, #6a4190);
+}
+
+.scan-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Status Messages */
+.no-scan-message, .missing-image {
+    font-size: 0.8rem;
+    padding: 1rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.no-scan-message {
+    color: #999;
+}
+
+.missing-image {
+    color: #e74c3c;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background: white;
+    margin: 5% auto;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+}
+
+.preview-container {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-image {
+    max-width: 200px;
+    max-height: 250px;
+    border-radius: 8px;
+    border: 2px solid #ddd;
+    background: white;
+}
+
+.modal-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading Animation */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Status Messages */
+.status-message {
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 600;
+}
+
+.status-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.status-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Image Viewer Modal */
+.image-viewer-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.image-viewer-content {
+    position: relative;
+    margin: 5% auto;
+    width: 90%;
+    max-width: 800px;
+    text-align: center;
+}
+
+.image-viewer-image {
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.close-viewer {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-viewer:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .finger-types {
+        gap: 0.75rem;
+    }
+    
+    .finger-box {
+        min-width: 100px;
+        min-height: 120px;
+        padding: 1rem;
+    }
+    
+    .finger-box img {
+        max-width: 60px;
+        max-height: 60px;
+    }
+}
+
+@media (max-width: 768px) {
+    .fingerprint-container {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+    
+    .finger-row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .finger-label-main {
+        min-width: auto;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    .finger-types {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .download-btn {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hand-section {
+        padding: 1rem;
+    }
+    
+    .hand-title {
+        font-size: 1.4rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .finger-types {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .finger-box {
+        width: 100%;
+        min-height: 80px;
+    }
+    
+    .download-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .download-btn i {
+        font-size: 0.9rem;
+    }
+}
+</style>
+
+
+<div class="fingerprint-container">
+    <div class="student-info">
+        <h2>Fingerprint Scanning</h2>
+        <p><strong>Student:</strong> {{ student.name }}</p>
+        <p><strong>ID:</strong> {{ student.id }}</p>
+        <!-- Add download button here -->
+        <div class="download-section">
+            <a href="{{ url_for('download_student_data', student_id=student.id) }}" 
+            class="download-btn" 
+            title="Download student data and fingerprints">
+                <i class="fas fa-download"></i> Download Data
+            </a>
+        </div>
+    </div>
+    <div class="fingerprint-sections">
+    <!-- Left Hand Section -->
+    <div class="hand-section">
+        <h3 class="hand-title">Left Hand</h3>
+        <div class="fingers-grid">
+            {% for finger in ['L1', 'L2', 'L3', 'L4', 'L5'] %}
+            <div class="finger-row">
+                <div class="finger-label-main">{{ finger }}</div>
+                <div class="finger-types">
+                    <!-- Middle -->
+                    <div class="finger-box" data-finger="{{ finger }}" data-type="middle">
+                        <div class="finger-type-label">Middle</div>
+                        {% set key = finger + '_middle' %}
+                        {% if existing_prints.get(key) and existing_prints[key]['file_exists'] %}
+                            <img src="{{ url_for('static', filename='fingerprints/' + existing_prints[key]['filename']) }}" 
+                                 alt="Fingerprint {{ finger }} middle" 
+                                 onclick="viewImage(this.src)">
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'middle')">Rescan</button>
+                        {% elif existing_prints.get(key) %}
+                            <div class="missing-image">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Missing</span>
+                                <small>{{ existing_prints[key]['filename'] }}</small>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'middle')">Rescan</button>
+                        {% else %}
+                            <div class="no-scan-message">
+                                <i class="fas fa-fingerprint"></i>
+                                <span>No scan</span>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'middle')">Scan</button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Left -->
+                    <div class="finger-box" data-finger="{{ finger }}" data-type="left">
+                        <div class="finger-type-label">Left</div>
+                        {% set key = finger + '_left' %}
+                        {% if existing_prints.get(key) and existing_prints[key]['file_exists'] %}
+                            <img src="{{ url_for('static', filename='fingerprints/' + existing_prints[key]['filename']) }}" 
+                                 alt="Fingerprint {{ finger }} left" 
+                                 onclick="viewImage(this.src)">
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'left')">Rescan</button>
+                        {% elif existing_prints.get(key) %}
+                            <div class="missing-image">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Missing</span>
+                                <small>{{ existing_prints[key]['filename'] }}</small>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'left')">Rescan</button>
+                        {% else %}
+                            <div class="no-scan-message">
+                                <i class="fas fa-fingerprint"></i>
+                                <span>No scan</span>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'left')">Scan</button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Right -->
+                    <div class="finger-box" data-finger="{{ finger }}" data-type="right">
+                        <div class="finger-type-label">Right</div>
+                        {% set key = finger + '_right' %}
+                        {% if existing_prints.get(key) and existing_prints[key]['file_exists'] %}
+                            <img src="{{ url_for('static', filename='fingerprints/' + existing_prints[key]['filename']) }}" 
+                                 alt="Fingerprint {{ finger }} right" 
+                                 onclick="viewImage(this.src)">
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'right')">Rescan</button>
+                        {% elif existing_prints.get(key) %}
+                            <div class="missing-image">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Missing</span>
+                                <small>{{ existing_prints[key]['filename'] }}</small>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'right')">Rescan</button>
+                        {% else %}
+                            <div class="no-scan-message">
+                                <i class="fas fa-fingerprint"></i>
+                                <span>No scan</span>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'right')">Scan</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Right Hand Section -->
+    <div class="hand-section">
+        <h3 class="hand-title">Right Hand</h3>
+        <div class="fingers-grid">
+            {% for finger in ['R1', 'R2', 'R3', 'R4', 'R5'] %}
+            <div class="finger-row">
+                <div class="finger-label-main">{{ finger }}</div>
+                <div class="finger-types">
+                    <!-- Middle -->
+                    <div class="finger-box" data-finger="{{ finger }}" data-type="middle">
+                        <div class="finger-type-label">Middle</div>
+                        {% set key = finger + '_middle' %}
+                        {% if existing_prints.get(key) and existing_prints[key]['file_exists'] %}
+                            <img src="{{ url_for('static', filename='fingerprints/' + existing_prints[key]['filename']) }}" 
+                                 alt="Fingerprint {{ finger }} middle" 
+                                 onclick="viewImage(this.src)">
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'middle')">Rescan</button>
+                        {% elif existing_prints.get(key) %}
+                            <div class="missing-image">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Missing</span>
+                                <small>{{ existing_prints[key]['filename'] }}</small>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'middle')">Rescan</button>
+                        {% else %}
+                            <div class="no-scan-message">
+                                <i class="fas fa-fingerprint"></i>
+                                <span>No scan</span>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'middle')">Scan</button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Left -->
+                    <div class="finger-box" data-finger="{{ finger }}" data-type="left">
+                        <div class="finger-type-label">Left</div>
+                        {% set key = finger + '_left' %}
+                        {% if existing_prints.get(key) and existing_prints[key]['file_exists'] %}
+                            <img src="{{ url_for('static', filename='fingerprints/' + existing_prints[key]['filename']) }}" 
+                                 alt="Fingerprint {{ finger }} left" 
+                                 onclick="viewImage(this.src)">
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'left')">Rescan</button>
+                        {% elif existing_prints.get(key) %}
+                            <div class="missing-image">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Missing</span>
+                                <small>{{ existing_prints[key]['filename'] }}</small>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'left')">Rescan</button>
+                        {% else %}
+                            <div class="no-scan-message">
+                                <i class="fas fa-fingerprint"></i>
+                                <span>No scan</span>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'left')">Scan</button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Right -->
+                    <div class="finger-box" data-finger="{{ finger }}" data-type="right">
+                        <div class="finger-type-label">Right</div>
+                        {% set key = finger + '_right' %}
+                        {% if existing_prints.get(key) and existing_prints[key]['file_exists'] %}
+                            <img src="{{ url_for('static', filename='fingerprints/' + existing_prints[key]['filename']) }}" 
+                                 alt="Fingerprint {{ finger }} right" 
+                                 onclick="viewImage(this.src)">
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'right')">Rescan</button>
+                        {% elif existing_prints.get(key) %}
+                            <div class="missing-image">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Missing</span>
+                                <small>{{ existing_prints[key]['filename'] }}</small>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'right')">Rescan</button>
+                        {% else %}
+                            <div class="no-scan-message">
+                                <i class="fas fa-fingerprint"></i>
+                                <span>No scan</span>
+                            </div>
+                            <button class="scan-btn" onclick="scanFinger('{{ finger }}', 'right')">Scan</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Live Preview Modal -->
+<div id="previewModal" class="modal">
+    <div class="modal-content">
+        <h3 id="previewTitle">Live Preview</h3>
+        <div class="preview-container">
+            <img id="livePreview" class="preview-image" src="" alt="Live Preview" style="display: none;">
+            <div id="previewStatus" class="status-message status-info">
+                <div class="loading"></div>
+                Initializing scanner...
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button id="okButton" class="btn btn-success" onclick="captureFrame()" style="display: none;">OK</button>
+            <button class="btn btn-secondary" onclick="closePreviewModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Capture Result Modal -->
+<div id="captureModal" class="modal">
+    <div class="modal-content">
+        <h3 id="captureTitle">Captured Fingerprint</h3>
+        <div id="captureStatus" class="status-message status-success" style="display: none;"></div>
+        <div id="captureImage" style="display: none;">
+            <img id="capturedImage" class="modal-image" src="" alt="Captured Fingerprint">
+        </div>
+        <div id="captureButtons" class="modal-buttons" style="display: none;">
+            <button class="btn btn-secondary" onclick="retakeScan()">Retake</button>
+            <button class="btn btn-success" onclick="saveScan()">Save</button>
+            <button class="btn btn-secondary" onclick="closeCaptureModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Image Viewer Modal -->
+<div id="imageViewerModal" class="image-viewer-modal">
+    <div class="image-viewer-content">
+        <span class="close-viewer" onclick="closeImageViewer()">&times;</span>
+        <img id="viewerImage" class="image-viewer-image" src="" alt="Fingerprint View">
+    </div>
+</div>
+
+<script>
+let currentFinger = '';
+let currentType = '';
+let currentImageB64 = '';   // base64 image from local scanner
+let currentImagePath = '';  // filename returned by server after upload
+let previewInterval = null;
+
+// Local scanner service URL (runs on the user's Windows PC)
+const LOCAL_SCANNER = 'http://localhost:8585';
+
+function scanFinger(finger, type) {
+    currentFinger = finger;
+    currentType = type;
+    
+    document.getElementById('previewTitle').textContent = `Scanning ${finger} - ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+    document.getElementById('previewStatus').innerHTML = '<div class="loading"></div>Connecting to local scanner service...';
+    document.getElementById('previewStatus').className = 'status-message status-info';
+    document.getElementById('livePreview').style.display = 'none';
+    document.getElementById('okButton').style.display = 'none';
+    document.getElementById('previewModal').style.display = 'block';
+    
+    // Talk to the LOCAL scanner service running on the user's PC
+    fetch(LOCAL_SCANNER + '/scanner/start_preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('previewStatus').innerHTML = 'Place your finger on the scanner...';
+            startPreviewUpdates();
+        } else {
+            document.getElementById('previewStatus').innerHTML = 'Error: ' + data.message;
+            document.getElementById('previewStatus').className = 'status-message status-error';
+        }
+    })
+    .catch(error => {
+        document.getElementById('previewStatus').innerHTML =
+            '<strong>Cannot connect to the local scanner service.</strong><br><br>' +
+            'Make sure <code>local_scanner_service.py</code> is running on this PC.<br>' +
+            'Open a terminal and run:<br>' +
+            '<code>python local_scanner_service.py</code>';
+        document.getElementById('previewStatus').className = 'status-message status-error';
+    });
+}
+
+function startPreviewUpdates() {
+    previewInterval = setInterval(() => {
+        fetch(LOCAL_SCANNER + '/scanner/get_preview')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.image) {
+                const previewImg = document.getElementById('livePreview');
+                previewImg.src = 'data:image/png;base64,' + data.image;
+                previewImg.style.display = 'block';
+                document.getElementById('previewStatus').innerHTML = 'Finger detected! Click OK to capture.';
+                document.getElementById('previewStatus').className = 'status-message status-success';
+                document.getElementById('okButton').style.display = 'inline-block';
+            }
+        })
+        .catch(error => {
+            console.log('Preview update error:', error);
+        });
+    }, 200);
+}
+
+function stopPreviewUpdates() {
+    if (previewInterval) {
+        clearInterval(previewInterval);
+        previewInterval = null;
+    }
+    
+    fetch(LOCAL_SCANNER + '/scanner/stop_preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    }).catch(() => {});
+}
+
+function captureFrame() {
+    document.getElementById('okButton').disabled = true;
+    document.getElementById('previewStatus').innerHTML = '<div class="loading"></div>Capturing...';
+    document.getElementById('previewStatus').className = 'status-message status-info';
+    
+    // Capture from LOCAL scanner service
+    fetch(LOCAL_SCANNER + '/scanner/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        closePreviewModal();
+        
+        if (data.success) {
+            currentImageB64 = data.image;
+            document.getElementById('captureTitle').textContent = `Captured ${currentFinger} - ${currentType.charAt(0).toUpperCase() + currentType.slice(1)}`;
+            document.getElementById('captureStatus').innerHTML = data.message;
+            document.getElementById('captureStatus').className = 'status-message status-success';
+            document.getElementById('captureStatus').style.display = 'block';
+            document.getElementById('capturedImage').src = 'data:image/png;base64,' + data.image;
+            document.getElementById('captureImage').style.display = 'block';
+            document.getElementById('captureButtons').style.display = 'flex';
+            document.getElementById('captureModal').style.display = 'block';
+        } else {
+            alert('Error capturing fingerprint: ' + data.message);
+        }
+    })
+    .catch(error => {
+        closePreviewModal();
+        alert('Cannot reach local scanner service: ' + error.message);
+    });
+}
+
+function closePreviewModal() {
+    stopPreviewUpdates();
+    document.getElementById('previewModal').style.display = 'none';
+    document.getElementById('okButton').disabled = false;
+}
+
+function closeCaptureModal() {
+    document.getElementById('captureModal').style.display = 'none';
+    document.getElementById('captureStatus').style.display = 'none';
+    document.getElementById('captureImage').style.display = 'none';
+    document.getElementById('captureButtons').style.display = 'none';
+    currentFinger = '';
+    currentType = '';
+    currentImageB64 = '';
+    currentImagePath = '';
+}
+
+function retakeScan() {
+    const finger = currentFinger;
+    const type = currentType;
+    closeCaptureModal();
+    scanFinger(finger, type);
+}
+
+function saveScan() {
+    // Upload the base64 image to the SERVER
+    fetch('/fingerprint/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            student_id: {{ student.id }},
+            finger_position: currentFinger,
+            finger_type: currentType,
+            image_data: currentImageB64
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const imageUrl = data.image_url;
+            
+            // Update the UI
+            const fingerBox = document.querySelector(`[data-finger="${currentFinger}"][data-type="${currentType}"]`);
+            fingerBox.innerHTML = `
+                <div class="finger-type-label">${currentType.charAt(0).toUpperCase() + currentType.slice(1)}</div>
+                <img src="${imageUrl}" 
+                     alt="Fingerprint ${currentFinger} ${currentType}" 
+                     onclick="viewImage(this.src)"
+                     style="max-width: 70px; max-height: 70px; border-radius: 6px; margin-bottom: 0.75rem; cursor: pointer; border: 2px solid #ddd; background: #f8f9fa; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <button class="scan-btn" onclick="scanFinger('${currentFinger}', '${currentType}')">Rescan</button>
+            `;
+            fingerBox.classList.add('has-print');
+            closeCaptureModal();
+        } else {
+            alert('Error saving fingerprint: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error uploading fingerprint: ' + error.message);
+    });
+}
+
+function viewImage(imageSrc) {
+    document.getElementById('viewerImage').src = imageSrc;
+    document.getElementById('imageViewerModal').style.display = 'block';
+}
+
+function closeImageViewer() {
+    document.getElementById('imageViewerModal').style.display = 'none';
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const previewModal = document.getElementById('previewModal');
+    const captureModal = document.getElementById('captureModal');
+    const imageViewerModal = document.getElementById('imageViewerModal');
+    
+    if (event.target === previewModal) {
+        closePreviewModal();
+    }
+    if (event.target === captureModal) {
+        closeCaptureModal();
+    }
+    if (event.target === imageViewerModal) {
+        closeImageViewer();
+    }
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    stopPreviewUpdates();
+});
+</script>
+{% endblock %}

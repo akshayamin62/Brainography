@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.profile-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 2rem;
+    margin: 1rem auto;
+    max-width: 800px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 16px;
+}
+
+.profile-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.profile-header p {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.profile-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.profile-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    transition: all 0.3s ease;
+}
+
+.profile-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15);
+}
+
+.profile-card h3 {
+    color: #764ba2;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.profile-card p {
+    color: #666;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.profile-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-decoration: none;
+    padding: 0.875rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.profile-btn:hover {
+    background: linear-gradient(135deg, #5a6fd8, #6a4190);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+    color: white;
+    text-decoration: none;
+}
+
+.profile-btn i {
+    font-size: 1.1rem;
+}
+
+.current-info {
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #667eea;
+}
+
+.current-info strong {
+    color: #764ba2;
+}
+
+@media (max-width: 768px) {
+    .profile-container {
+        margin: 0.5rem;
+        padding: 1.5rem;
+    }
+    
+    .profile-header {
+        padding: 1.5rem;
+    }
+    
+    .profile-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .profile-options {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .profile-card {
+        padding: 1.5rem;
+    }
+}
+</style>
+
+<div class="profile-container">
+    <div class="profile-header">
+        <h1><i class="fas fa-user-shield"></i> Account Management</h1>
+        <p>Manage your super admin account settings and security</p>
+    </div>
+
+    <div class="current-info">
+        <strong>Current Username:</strong> {{ current_user.username }}<br>
+        <strong>Current Email:</strong> {{ current_user.email }}<br>
+        <strong>Role:</strong> Super Administrator
+    </div>
+
+    <div class="profile-options">
+        <div class="profile-card">
+            <h3><i class="fas fa-envelope"></i> Email Settings</h3>
+            <p>Change your email address with OTP verification for security.</p>
+            <a href="{{ url_for('email_reset_request') }}" class="profile-btn">
+                <i class="fas fa-at"></i> Reset Email
+            </a>
+        </div>
+
+        <div class="profile-card">
+            <h3><i class="fas fa-lock"></i> Password Security</h3>
+            <p>Update your password to keep your account secure.</p>
+            <a href="{{ url_for('password_reset') }}" class="profile-btn">
+                <i class="fas fa-key"></i> Reset Password
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
