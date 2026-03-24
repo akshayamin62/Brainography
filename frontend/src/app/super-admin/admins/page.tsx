@@ -14,8 +14,11 @@ export default function AdminsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<User | null>(null);
-  const [form, setForm] = useState({ name: '', email: '', phone: '' });
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formPhone, setFormPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState('');
 
   const fetchAdmins = async () => {
     try {
@@ -30,19 +33,25 @@ export default function AdminsPage() {
     if (user) fetchAdmins();
   }, [user]);
 
+  const resetForm = () => {
+    setFormName('');
+    setFormEmail('');
+    setFormPhone('');
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email) {
+    if (!formName || !formEmail) {
       toast.error('Name and email are required');
       return;
     }
     setSubmitting(true);
     try {
-      const res = await adminAPI.create(form);
+      const res = await adminAPI.create({ name: formName, email: formEmail, phone: formPhone || undefined });
       if (res.data.success) {
-        toast.success('Admin created! Welcome email sent.');
+        toast.success('Admin created successfully!');
         setShowAddModal(false);
-        setForm({ name: '', email: '', phone: '' });
+        resetForm();
         fetchAdmins();
       }
     } catch (err: any) {
@@ -57,7 +66,7 @@ export default function AdminsPage() {
     if (!editingAdmin) return;
     setSubmitting(true);
     try {
-      const res = await adminAPI.update(editingAdmin._id || editingAdmin.id || '', form);
+      const res = await adminAPI.update(editingAdmin._id || editingAdmin.id || '', { name: formName, email: formEmail, phone: formPhone });
       if (res.data.success) {
         toast.success('Admin updated');
         setShowEditModal(false);
@@ -71,24 +80,19 @@ export default function AdminsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this admin?')) return;
-    try {
-      const res = await adminAPI.delete(id);
-      if (res.data.success) {
-        toast.success('Admin deleted');
-        fetchAdmins();
-      }
-    } catch {
-      toast.error('Failed to delete admin');
-    }
-  };
-
   const openEdit = (admin: User) => {
     setEditingAdmin(admin);
-    setForm({ name: admin.name, email: admin.email, phone: admin.phone || '' });
+    setFormName(admin.name);
+    setFormEmail(admin.email);
+    setFormPhone(admin.phone || '');
     setShowEditModal(true);
   };
+
+  const filtered = admins.filter((a) =>
+    a.name.toLowerCase().includes(search.toLowerCase()) ||
+    a.email.toLowerCase().includes(search.toLowerCase()) ||
+    (a.phone || '').toLowerCase().includes(search.toLowerCase())
+  );
 
   if (loading || !user) {
     return (
@@ -107,7 +111,7 @@ export default function AdminsPage() {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Admins</h1>
             <button
-              onClick={() => { setForm({ name: '', email: '', phone: '' }); setShowAddModal(true); }}
+              onClick={() => { resetForm(); setShowAddModal(true); }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +121,12 @@ export default function AdminsPage() {
             </button>
           </div>
 
-          {/* Admin Table */}
+          <div className="mb-4">
+            <input type="text" placeholder="Search by name, email, or phone..."
+              value={search} onChange={(e) => setSearch(e.target.value)}
+              className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" />
+          </div>
+
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -132,41 +141,30 @@ export default function AdminsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {admins.length === 0 ? (
+                  {filtered.length === 0 ? (
                     <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">No admins found</td></tr>
                   ) : (
-                    admins.map((admin, idx) => (
+                    filtered.map((admin, idx) => (
                       <tr key={admin._id || admin.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 text-sm text-gray-500">{idx + 1}</td>
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">{admin.name}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{admin.email}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{admin.phone || '-'}</td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${admin.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {admin.isActive ? 'Active' : 'Inactive'}
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${admin.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {admin.isActive !== false ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => openEdit(admin)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleDelete(admin._id || admin.id || '')}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => openEdit(admin)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -177,7 +175,6 @@ export default function AdminsPage() {
           </div>
         </div>
 
-        {/* Add Modal */}
         {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 animate-scale-in">
@@ -185,18 +182,18 @@ export default function AdminsPage() {
               <form onSubmit={handleAdd} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                  <input type="text" value={formPhone} onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" />
                 </div>
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={submitting}
@@ -213,7 +210,6 @@ export default function AdminsPage() {
           </div>
         )}
 
-        {/* Edit Modal */}
         {showEditModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 animate-scale-in">
@@ -221,18 +217,18 @@ export default function AdminsPage() {
               <form onSubmit={handleEdit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
+                  <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                  <input type="text" value={formPhone} onChange={(e) => setFormPhone(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" />
                 </div>
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={submitting}

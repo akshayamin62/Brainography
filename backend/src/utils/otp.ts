@@ -1,25 +1,25 @@
+import crypto from "crypto";
+import bcrypt from "bcrypt";
+
 /**
- * Generate a 4-digit OTP
+ * Generate a 6-digit OTP using cryptographically secure random
  */
 export const generateOTP = (): string => {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return crypto.randomInt(100000, 999999).toString();
 };
 
 /**
- * Hash OTP for storage (simple hash for 4-digit OTP)
+ * Hash OTP for storage using bcrypt
  */
-export const hashOTP = (otp: string): string => {
-  // Simple hash for OTP (you can use bcrypt if needed, but for 4-digit OTP this is sufficient)
-  // For better security, you might want to use bcrypt with lower rounds
-  return Buffer.from(otp).toString('base64');
+export const hashOTP = async (otp: string): Promise<string> => {
+  return bcrypt.hash(otp, 10);
 };
 
 /**
- * Compare OTP
+ * Compare OTP against hashed value
  */
-export const compareOTP = (otp: string, hashedOTP: string): boolean => {
-  const hashedInput = Buffer.from(otp).toString('base64');
-  return hashedInput === hashedOTP;
+export const compareOTP = async (otp: string, hashedOTP: string): Promise<boolean> => {
+  return bcrypt.compare(otp, hashedOTP);
 };
 
 /**

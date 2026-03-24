@@ -18,10 +18,16 @@ export default function AdminStudentsPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    name: '', parentName: '', mobile: '', email: '',
-    university: '', standard: '', address: '', dob: '', gender: 'Male',
-  });
+
+  const [fName, setFName] = useState('');
+  const [fParentName, setFParentName] = useState('');
+  const [fMobile, setFMobile] = useState('');
+  const [fEmail, setFEmail] = useState('');
+  const [fUniversity, setFUniversity] = useState('');
+  const [fStandard, setFStandard] = useState('');
+  const [fAddress, setFAddress] = useState('');
+  const [fDob, setFDob] = useState('');
+  const [fGender, setFGender] = useState('Male');
 
   const fetchStudents = async () => {
     try {
@@ -36,16 +42,21 @@ export default function AdminStudentsPage() {
     if (user) fetchStudents();
   }, [user]);
 
-  const resetForm = () => setForm({
-    name: '', parentName: '', mobile: '', email: '',
-    university: '', standard: '', address: '', dob: '', gender: 'Male',
+  const resetForm = () => {
+    setFName(''); setFParentName(''); setFMobile(''); setFEmail('');
+    setFUniversity(''); setFStandard(''); setFAddress(''); setFDob(''); setFGender('Male');
+  };
+
+  const getFormData = () => ({
+    name: fName, parentName: fParentName, mobile: fMobile, email: fEmail,
+    university: fUniversity, standard: fStandard, address: fAddress, dob: fDob, gender: fGender,
   });
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await studentAPI.create(form);
+      const res = await studentAPI.create(getFormData());
       if (res.data.success) {
         toast.success('Student added!');
         setShowAddModal(false);
@@ -64,7 +75,7 @@ export default function AdminStudentsPage() {
     if (!editingStudent) return;
     setSubmitting(true);
     try {
-      const res = await studentAPI.update(editingStudent._id, form);
+      const res = await studentAPI.update(editingStudent._id, getFormData());
       if (res.data.success) {
         toast.success('Student updated!');
         setShowEditModal(false);
@@ -78,25 +89,10 @@ export default function AdminStudentsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this student?')) return;
-    try {
-      const res = await studentAPI.delete(id);
-      if (res.data.success) {
-        toast.success('Student deleted');
-        fetchStudents();
-      }
-    } catch {
-      toast.error('Failed to delete student');
-    }
-  };
-
   const openEdit = (s: Student) => {
     setEditingStudent(s);
-    setForm({
-      name: s.name, parentName: s.parentName, mobile: s.mobile, email: s.email,
-      university: s.university, standard: s.standard, address: s.address, dob: s.dob, gender: s.gender,
-    });
+    setFName(s.name); setFParentName(s.parentName); setFMobile(s.mobile); setFEmail(s.email);
+    setFUniversity(s.university); setFStandard(s.standard); setFAddress(s.address); setFDob(s.dob); setFGender(s.gender);
     setShowEditModal(true);
   };
 
@@ -113,59 +109,59 @@ export default function AdminStudentsPage() {
     );
   }
 
-  const StudentFormFields = () => (
+  const formFields = (
     <>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-          <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm" required />
+          <input type="text" value={fName} onChange={(e) => setFName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900" required />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Parent Name *</label>
-          <input type="text" value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm" required />
+          <input type="text" value={fParentName} onChange={(e) => setFParentName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900" required />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-          <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm" required />
+          <input type="email" value={fEmail} onChange={(e) => setFEmail(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900" required />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Mobile *</label>
-          <input type="text" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm" required />
+          <input type="text" value={fMobile} onChange={(e) => setFMobile(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900" required />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">University *</label>
-          <input type="text" value={form.university} onChange={(e) => setForm({ ...form, university: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm" required />
+          <input type="text" value={fUniversity} onChange={(e) => setFUniversity(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900" required />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Standard *</label>
-          <input type="text" value={form.standard} onChange={(e) => setForm({ ...form, standard: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm" required />
+          <input type="text" value={fStandard} onChange={(e) => setFStandard(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900" required />
         </div>
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-        <input type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm" required />
+        <input type="text" value={fAddress} onChange={(e) => setFAddress(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900" required />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
-          <input type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm" required />
+          <input type="date" value={fDob} onChange={(e) => setFDob(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900" required />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-          <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+          <select value={fGender} onChange={(e) => setFGender(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900">
             <option value="Male">Male</option>
             <option value="Female">Female</option>
             <option value="Other">Other</option>
@@ -197,7 +193,7 @@ export default function AdminStudentsPage() {
           <div className="mb-4">
             <input type="text" placeholder="Search students..."
               value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" />
+              className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900" />
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -244,12 +240,6 @@ export default function AdminStudentsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </button>
-                            <button onClick={() => handleDelete(student._id)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -261,13 +251,12 @@ export default function AdminStudentsPage() {
           </div>
         </div>
 
-        {/* Add Student Modal */}
         {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4 animate-scale-in max-h-[90vh] overflow-y-auto">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Add New Student</h2>
               <form onSubmit={handleAdd} className="space-y-3">
-                <StudentFormFields />
+                {formFields}
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={submitting}
                     className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium">
@@ -281,13 +270,12 @@ export default function AdminStudentsPage() {
           </div>
         )}
 
-        {/* Edit Student Modal */}
         {showEditModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4 animate-scale-in max-h-[90vh] overflow-y-auto">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Edit Student</h2>
               <form onSubmit={handleEdit} className="space-y-3">
-                <StudentFormFields />
+                {formFields}
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={submitting}
                     className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium">

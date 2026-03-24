@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import AdminLayout from '@/components/AdminLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { documentAPI, studentAPI, BACKEND_URL } from '@/lib/api';
+import { documentAPI, studentAPI, BACKEND_URL, withToken } from '@/lib/api';
 import { Student, StudentDoc } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -16,7 +16,6 @@ export default function DocumentsPage() {
 
   const [student, setStudent] = useState<Student | null>(null);
   const [documents, setDocuments] = useState<StudentDoc[]>([]);
-  const [uploading, setUploading] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -35,43 +34,9 @@ export default function DocumentsPage() {
     if (user) fetchData();
   }, [user, fetchData]);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
-    setUploading(true);
-    const formData = new FormData();
-    for (let i = 0; i < e.target.files.length; i++) {
-      formData.append('documents', e.target.files[i]);
-    }
-    try {
-      const res = await documentAPI.upload(studentId, formData);
-      if (res.data.success) {
-        toast.success(`${e.target.files.length} file(s) uploaded`);
-        fetchData();
-      }
-    } catch {
-      toast.error('Upload failed');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleDelete = async (docId: string) => {
-    if (!confirm('Delete this document?')) return;
-    try {
-      const res = await documentAPI.delete(docId);
-      if (res.data.success) {
-        toast.success('Deleted');
-        fetchData();
-      }
-    } catch {
-      toast.error('Delete failed');
-    }
-  };
-
   const handleDownload = (filename: string, originalName: string) => {
     const link = document.createElement('a');
-    link.href = `${BACKEND_URL}/uploads/student_docs/${filename}`;
+    link.href = withToken(`${BACKEND_URL}/uploads/student_docs/${filename}`);
     link.download = originalName;
     link.click();
   };
@@ -105,10 +70,7 @@ export default function DocumentsPage() {
               <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
               {student && <p className="text-gray-600 mt-1">Student: {student.name}</p>}
             </div>
-            <label className="px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors text-sm">
-              {uploading ? 'Uploading...' : 'Upload Documents'}
-              <input type="file" multiple onChange={handleUpload} disabled={uploading} className="hidden" />
-            </label>
+            <span className="text-sm text-gray-500">{documents.length} document(s)</span>
           </div>
 
           {/* Documents List */}
@@ -142,16 +104,10 @@ export default function DocumentsPage() {
                         {new Date(doc.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleDownload(doc.filename, doc.originalName)}
+                        <button onClick={() => handleDownload(doc.filename, doc.originalName)}
                             className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors">
                             Download
                           </button>
-                          <button onClick={() => handleDelete(doc._id)}
-                            className="px-3 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors">
-                            Delete
-                          </button>
-                        </div>
                       </td>
                     </tr>
                   ))}

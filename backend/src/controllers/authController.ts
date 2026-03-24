@@ -13,6 +13,8 @@ import {
 interface LoginRequest extends Request {
   body: {
     email: string;
+    captcha: string;
+    captchaInput: string;
   };
 }
 
@@ -26,7 +28,7 @@ interface VerifyOTPRequest extends Request {
 // Request OTP for login
 export const login = async (req: LoginRequest, res: Response): Promise<Response> => {
   try {
-    const { email } = req.body;
+    const { email, captcha, captchaInput } = req.body;
 
     if (!email) {
       return res.status(400).json({
@@ -35,12 +37,25 @@ export const login = async (req: LoginRequest, res: Response): Promise<Response>
       });
     }
 
+    if (!captcha || !captchaInput) {
+      return res.status(400).json({
+        success: false,
+        message: "Captcha is required",
+      });
+    }
+
+    if (captcha !== captchaInput) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid captcha. Please try again.",
+      });
+    }
+
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      // Don't reveal if user exists
-      return res.status(200).json({
-        success: true,
-        message: "If an account exists with this email, an OTP has been sent.",
+      return res.status(404).json({
+        success: false,
+        message: "Account not found.",
       });
     }
 
@@ -54,7 +69,7 @@ export const login = async (req: LoginRequest, res: Response): Promise<Response>
     // Generate OTP
     const otp = generateOTP();
     console.log(otp);
-    const hashedOTP = hashOTP(otp);
+    const hashedOTP = await hashOTP(otp);
     const otpExpires = getOTPExpiration(10);
 
     user.otp = hashedOTP;
@@ -112,7 +127,7 @@ export const verifyOTP = async (req: VerifyOTPRequest, res: Response): Promise<R
       });
     }
 
-    if (!compareOTP(otp, user.otp)) {
+    if (!(await compareOTP(otp, user.otp))) {
       return res.status(401).json({
         success: false,
         message: "Invalid OTP",

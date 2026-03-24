@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import SuperAdminLayout from '@/components/SuperAdminLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { documentAPI, studentAPI, BACKEND_URL } from '@/lib/api';
+import { documentAPI, studentAPI, BACKEND_URL, withToken } from '@/lib/api';
 import { Student, StudentDoc } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -16,6 +16,7 @@ export default function SADocumentsPage() {
 
   const [student, setStudent] = useState<Student | null>(null);
   const [documents, setDocuments] = useState<StudentDoc[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -34,9 +35,28 @@ export default function SADocumentsPage() {
     if (user) fetchData();
   }, [user, fetchData]);
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('document', e.target.files[0]);
+    try {
+      const res = await documentAPI.upload(studentId, formData);
+      if (res.data.success) {
+        toast.success('Document uploaded');
+        fetchData();
+      }
+    } catch {
+      toast.error('Upload failed');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const handleDownload = (filename: string, originalName: string) => {
     const link = document.createElement('a');
-    link.href = `${BACKEND_URL}/uploads/student_docs/${filename}`;
+    link.href = withToken(`${BACKEND_URL}/uploads/student_docs/${filename}`);
     link.download = originalName;
     link.click();
   };
@@ -70,7 +90,13 @@ export default function SADocumentsPage() {
               <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
               {student && <p className="text-gray-600 mt-1">Student: {student.name}</p>}
             </div>
-            <span className="text-sm text-gray-500">{documents.length} document(s)</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-500">{documents.length} document(s)</span>
+              <label className="px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors text-sm">
+                {uploading ? 'Uploading...' : 'Upload Document'}
+                <input type="file" onChange={handleUpload} disabled={uploading} className="hidden" />
+              </label>
+            </div>
           </div>
 
           {/* Documents List */}

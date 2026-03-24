@@ -9,7 +9,6 @@ import {
   getFingerprints,
   uploadFingerprint,
   saveFingerprint,
-  deleteFingerprint,
   downloadFingerprints,
 } from "../controllers/fingerprintController";
 
@@ -38,13 +37,6 @@ const upload = multer({
 
 const router = Router();
 
-router.get(
-  "/:studentId",
-  authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
-  getFingerprints
-);
-
 router.post(
   "/upload",
   authenticate,
@@ -60,18 +52,19 @@ router.post(
   saveFingerprint
 );
 
-router.delete(
-  "/:id",
-  authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
-  deleteFingerprint
-);
-
 router.get(
   "/download/:studentId",
   authenticate,
   authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
   downloadFingerprints
+);
+
+// This must be LAST - catch-all param route
+router.get(
+  "/:studentId",
+  authenticate,
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  getFingerprints
 );
 
 export default router;

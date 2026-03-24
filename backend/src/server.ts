@@ -1,6 +1,8 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import authRoutes from "./routes/authRoutes";
@@ -21,13 +23,37 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+}));
 app.use(express.json({ limit: "50mb" }));
 
-// Serve uploaded files
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// Rate limit auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 2000, // 20 requests per window
+  message: { success: false, message: "Too many requests, please try again later." },
+});
 
-app.use("/api/auth", authRoutes);
+// Serve uploaded files (require auth token as query param)
+app.use("/uploads", (req, res, next) => {
+  const token = req.query.token as string || req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    res.status(401).json({ success: false, message: "Unauthorized" });
+    return;
+  }
+  try {
+    require("./utils/jwt").verifyToken(token);
+    next();
+  } catch {
+    res.status(401).json({ success: false, message: "Unauthorized" });
+    return;
+  }
+}, express.static(path.join(__dirname, "../uploads")));
+
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/admins", adminRoutes);
 app.use("/api/students", studentRoutes);

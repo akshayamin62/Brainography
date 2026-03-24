@@ -9,7 +9,6 @@ import {
   listDocuments,
   uploadDocument,
   downloadDocument,
-  deleteDocument,
 } from "../controllers/documentController";
 
 const DOCS_DIR = path.join(__dirname, "../../uploads/student_docs");
@@ -38,6 +37,14 @@ const upload = multer({
 const router = Router();
 
 router.get(
+  "/download/:docId",
+  authenticate,
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  downloadDocument
+);
+
+// These must be LAST - catch-all param routes
+router.get(
   "/:studentId",
   authenticate,
   authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
@@ -47,23 +54,9 @@ router.get(
 router.post(
   "/:studentId",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN),
   upload.single("document"),
   uploadDocument
-);
-
-router.get(
-  "/download/:docId",
-  authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
-  downloadDocument
-);
-
-router.delete(
-  "/:docId",
-  authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
-  deleteDocument
 );
 
 export default router;

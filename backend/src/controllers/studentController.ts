@@ -32,7 +32,7 @@ export const getStudent = async (req: AuthRequest, res: Response): Promise<Respo
     const userRole = req.user?.role;
     const userId = req.user?.userId;
 
-    const student = await Student.findById(id).populate("adminId", "name email");
+    const student = await Student.findById(id);
     if (!student) {
       return res.status(404).json({ success: false, message: "Student not found" });
     }
@@ -41,6 +41,9 @@ export const getStudent = async (req: AuthRequest, res: Response): Promise<Respo
     if (userRole === "ADMIN" && student.adminId?.toString() !== userId) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
+
+    // Populate after ownership check
+    await student.populate("adminId", "name email");
 
     return res.json({ success: true, data: student });
   } catch (err) {

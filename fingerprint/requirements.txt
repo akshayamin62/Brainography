@@ -1,10 +1,4 @@
 flask
-flask-mail
-flask_sqlalchemy
-flask-login
-flask-wtf
-wtforms
-itsdangerous
-werkzeug
-pytz
-gunicorn
+flask-cors
+numpy
+opencv-python

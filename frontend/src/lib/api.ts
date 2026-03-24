@@ -3,6 +3,15 @@ import axios from 'axios';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
+// Helper to append auth token to URLs for protected static files
+export const withToken = (url: string): string => {
+  if (typeof window === 'undefined') return url;
+  const token = localStorage.getItem('token');
+  if (!token) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}token=${token}`;
+};
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -22,7 +31,7 @@ api.interceptors.request.use((config) => {
 });
 
 export const authAPI = {
-  login: (data: { email: string }) =>
+  login: (data: { email: string; captcha: string; captchaInput: string }) =>
     api.post('/auth/login', data),
   
   verifyOTP: (data: { email: string; otp: string }) =>
@@ -42,8 +51,6 @@ export const adminAPI = {
     api.post('/admins', data),
   update: (id: string, data: any) =>
     api.put(`/admins/${id}`, data),
-  delete: (id: string) =>
-    api.delete(`/admins/${id}`),
 };
 
 export const studentAPI = {
@@ -51,14 +58,12 @@ export const studentAPI = {
   get: (id: string) => api.get(`/students/${id}`),
   create: (data: any) => api.post('/students', data),
   update: (id: string, data: any) => api.put(`/students/${id}`, data),
-  delete: (id: string) => api.delete(`/students/${id}`),
 };
 
 export const fingerprintAPI = {
   getAll: (studentId: string) => api.get(`/fingerprints/${studentId}`),
   upload: (data: { studentId: string; fingerPosition: string; fingerType: string; imageData: string }) =>
     api.post('/fingerprints/upload', data),
-  delete: (id: string) => api.delete(`/fingerprints/${id}`),
   downloadUrl: (studentId: string) => `${API_URL}/fingerprints/download/${studentId}`,
 };
 
@@ -69,7 +74,6 @@ export const documentAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   downloadUrl: (docId: string) => `${API_URL}/documents/download/${docId}`,
-  delete: (docId: string) => api.delete(`/documents/${docId}`),
 };
 
 export default api;
