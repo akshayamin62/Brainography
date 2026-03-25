@@ -2,6 +2,8 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import User from "../models/User";
 import AdminDetail from "../models/AdminDetail";
+import Student from "../models/Student";
+import { sendAdminWelcomeEmail } from "../utils/email";
 
 // GET /api/admins - List all admins (Super Admin only)
 export const listAdmins = async (_req: AuthRequest, res: Response): Promise<Response> => {
@@ -15,9 +17,17 @@ export const listAdmins = async (_req: AuthRequest, res: Response): Promise<Resp
     const details = await AdminDetail.find({ userId: { $in: adminIds } });
     const detailMap = new Map(details.map(d => [d.userId.toString(), d]));
 
+    // Count students per admin
+    const studentCounts = await Student.aggregate([
+      { $match: { adminId: { $in: adminIds } } },
+      { $group: { _id: "$adminId", count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map(studentCounts.map(sc => [sc._id.toString(), sc.count]));
+
     const adminsWithDetails = admins.map(a => {
       const obj = a.toObject();
       (obj as any).details = detailMap.get(a._id.toString()) || null;
+      (obj as any).studentCount = countMap.get(a._id.toString()) || 0;
       return obj;
     });
 
@@ -88,6 +98,14 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<Resp
     });
 
     await detail.save();
+
+    // Send welcome email to the new admin
+    try {
+      await sendAdminWelcomeEmail(admin.email, admin.name, companyName);
+    } catch (emailErr) {
+      console.error("Failed to send welcome email:", emailErr);
+      // Don't fail the request if email fails
+    }
 
     return res.status(201).json({
       success: true,

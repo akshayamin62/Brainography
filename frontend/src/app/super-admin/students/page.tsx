@@ -33,6 +33,11 @@ export default function SuperAdminStudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [admins, setAdmins] = useState<User[]>([]);
   const [search, setSearch] = useState('');
+  const [filterGender, setFilterGender] = useState('');
+  const [filterEducation, setFilterEducation] = useState('');
+  const [filterAdmin, setFilterAdmin] = useState('');
+  const [sortField, setSortField] = useState<'name' | 'email' | 'createdAt' | 'admin' | ''>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadStudentIdRef = useRef<string>('');
@@ -67,6 +72,7 @@ export default function SuperAdminStudentsPage() {
   const [fHobbies, setFHobbies] = useState('');
   const [fGames, setFGames] = useState('');
   const [fOtherGames, setFOtherGames] = useState('');
+  const [fStandard, setFStandard] = useState('');
 
   const countries = useMemo(() => Country.getAllCountries(), []);
   const states = useMemo(() => fCountry ? State.getStatesOfCountry(fCountry) : [], [fCountry]);
@@ -78,12 +84,23 @@ export default function SuperAdminStudentsPage() {
   const showBoard = fEducationLevel === 'secondary_school' || fEducationLevel === 'higher_secondary_school';
   const showBoardFullName = showBoard && (fBoard === 'State Board' || fBoard === 'Other');
   const showFieldOfStudy = fEducationLevel && fEducationLevel !== 'secondary_school';
+  const showStandard = fEducationLevel === 'secondary_school' || fEducationLevel === 'higher_secondary_school';
 
   // Admin company name list for dropdown
   const adminOptions = useMemo(() => admins.map(a => ({
     id: a._id || a.id || '',
     label: a.details?.companyName ? `${a.details.companyName}` : a.name,
   })), [admins]);
+
+  // Map admin IDs to company names for table display
+  const adminCompanyMap = useMemo(() => {
+    const map = new Map<string, string>();
+    admins.forEach(a => {
+      const id = a._id || a.id || '';
+      map.set(id, a.details?.companyName || a.name);
+    });
+    return map;
+  }, [admins]);
 
   const fetchStudents = async () => {
     try {
@@ -109,7 +126,7 @@ export default function SuperAdminStudentsPage() {
     setFInstitutionName(''); setFInstitutionCountry(''); setFFieldOfStudy(''); setFMedium('');
     setFAddress(''); setFCountry(''); setFState(''); setFCity('');
     setFSiblings('0'); setFFamilyStructure(''); setFMotherActivity(''); setFFatherActivity('');
-    setFHobbies(''); setFGames(''); setFOtherGames('');
+    setFHobbies(''); setFGames(''); setFOtherGames(''); setFStandard('');
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -132,6 +149,7 @@ export default function SuperAdminStudentsPage() {
         siblings: parseInt(fSiblings) || 0, familyStructure: fFamilyStructure,
         motherActivity: fMotherActivity, fatherActivity: fFatherActivity,
         hobbies: fHobbies || undefined, games: fGames, otherGames: fOtherGames || undefined,
+        standard: showStandard ? fStandard : undefined,
       });
       if (res.data.success) {
         toast.success('Student added!');
@@ -168,10 +186,44 @@ export default function SuperAdminStudentsPage() {
     link.click();
   };
 
-  const filtered = students.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase())
+  const toggleSort = (field: typeof sortField) => {
+    if (sortField === field) setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('asc'); }
+  };
+
+  const SortIcon = ({ field }: { field: typeof sortField }) => (
+    <span className="inline-block ml-1 text-[10px] opacity-60">
+      {sortField === field ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+    </span>
   );
+
+  const filtered = useMemo(() => {
+    let list = students.filter((s) => {
+      const q = search.toLowerCase();
+      if (q && !s.name.toLowerCase().includes(q) && !s.email.toLowerCase().includes(q)) return false;
+      if (filterGender && s.gender !== filterGender) return false;
+      if (filterEducation && s.educationLevel !== filterEducation) return false;
+      if (filterAdmin) {
+        const sid = typeof s.adminId === 'object' ? s.adminId?._id : s.adminId;
+        if (sid !== filterAdmin) return false;
+      }
+      return true;
+    });
+    if (sortField) {
+      list = [...list].sort((a, b) => {
+        let va = '', vb = '';
+        if (sortField === 'name') { va = a.name; vb = b.name; }
+        else if (sortField === 'email') { va = a.email; vb = b.email; }
+        else if (sortField === 'createdAt') { va = a.createdAt || ''; vb = b.createdAt || ''; }
+        else if (sortField === 'admin') {
+          va = typeof a.adminId === 'object' && a.adminId?._id ? (adminCompanyMap.get(a.adminId._id) || '') : '';
+          vb = typeof b.adminId === 'object' && b.adminId?._id ? (adminCompanyMap.get(b.adminId._id) || '') : '';
+        }
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      });
+    }
+    return list;
+  }, [students, search, filterGender, filterEducation, filterAdmin, sortField, sortDir, adminCompanyMap]);
 
   if (loading || !user) {
     return (
@@ -181,10 +233,10 @@ export default function SuperAdminStudentsPage() {
     );
   }
 
-  const inputCls = 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900';
+  const inputCls = 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900';
   const selectCls = inputCls;
   const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
-  const sectionCls = 'text-sm font-semibold text-indigo-700 border-b border-indigo-200 pb-1 mb-3 mt-2';
+  const sectionCls = 'text-sm font-semibold text-blue-700 border-b border-blue-200 pb-1 mb-3 mt-2';
 
   return (
     <>
@@ -195,7 +247,7 @@ export default function SuperAdminStudentsPage() {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-gray-900">All Students</h1>
             <button onClick={() => { resetForm(); setShowAddModal(true); }}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm flex items-center gap-2">
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -205,9 +257,29 @@ export default function SuperAdminStudentsPage() {
 
           <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
 
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
             <input type="text" placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" />
+              className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 text-sm" />
+            <select value={filterGender} onChange={e => setFilterGender(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500">
+              <option value="">All Genders</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+            <select value={filterEducation} onChange={e => setFilterEducation(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500">
+              <option value="">All Education</option>
+              {EDUCATION_LEVELS.map(el => <option key={el.value} value={el.value}>{el.label}</option>)}
+            </select>
+            <select value={filterAdmin} onChange={e => setFilterAdmin(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500">
+              <option value="">All Admins</option>
+              {adminOptions.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+            </select>
+            {(filterGender || filterEducation || filterAdmin) && (
+              <button onClick={() => { setFilterGender(''); setFilterEducation(''); setFilterAdmin(''); }}
+                className="text-sm text-blue-600 hover:underline">Clear filters</button>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -216,11 +288,11 @@ export default function SuperAdminStudentsPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('name')}>Name<SortIcon field="name" /></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('email')}>Email<SortIcon field="email" /></th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Mobile</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Institution</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Admin</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('createdAt')}>Created On<SortIcon field="createdAt" /></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('admin')}>Admin<SortIcon field="admin" /></th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
@@ -234,9 +306,11 @@ export default function SuperAdminStudentsPage() {
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">{student.name}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{student.email}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{student.countryCode ? `${student.countryCode} ` : ''}{student.mobile}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{student.institutionName || student.university || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{student.createdAt ? new Date(student.createdAt).toLocaleDateString() : '-'}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {typeof student.adminId === 'object' ? student.adminId?.name : 'N/A'}
+                          {typeof student.adminId === 'object' && student.adminId?._id
+                            ? (adminCompanyMap.get(student.adminId._id) || student.adminId.name || 'N/A')
+                            : 'N/A'}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
@@ -248,8 +322,8 @@ export default function SuperAdminStudentsPage() {
                             </button>
                             <button onClick={() => router.push(`/super-admin/students/${student._id}/fingerprints`)}
                               className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Fingerprints">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                                <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4M5 19.5C5.5 18 6 15 6 12c0-3.5 2.5-6 6-6a6 6 0 0 1 5.5 3M8.5 22c.7-2.3 1-4.5 1-7 0-2.2.8-4 3-4.5M14 13c0 2-.5 4-1.5 7" />
                               </svg>
                             </button>
                             <button onClick={() => handleUploadDoc(student._id)} disabled={uploadingId === student._id}
@@ -314,7 +388,7 @@ export default function SuperAdminStudentsPage() {
                     <div className="flex items-center gap-4 mt-2">
                       {['Male', 'Female'].map(g => (
                         <label key={g} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
-                          <input type="radio" name="gender" value={g} checked={fGender === g} onChange={() => setFGender(g)} className="accent-indigo-600" />
+                          <input type="radio" name="gender" value={g} checked={fGender === g} onChange={() => setFGender(g)} className="accent-blue-600" />
                           {g}
                         </label>
                       ))}
@@ -354,6 +428,9 @@ export default function SuperAdminStudentsPage() {
                 </div>
                 {showBoardFullName && (
                   <div><label className={labelCls}>Full Name of Board *</label><input type="text" value={fBoardFullName} onChange={e => setFBoardFullName(e.target.value)} className={inputCls} placeholder="Enter full name of your board" required /></div>
+                )}
+                {showStandard && (
+                  <div><label className={labelCls}>Standard *</label><input type="number" min="1" max="12" value={fStandard} onChange={e => setFStandard(e.target.value)} className={inputCls} placeholder="e.g. 10" required /></div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className={labelCls}>Institution Name *</label><input type="text" value={fInstitutionName} onChange={e => setFInstitutionName(e.target.value)} className={inputCls} required /></div>
@@ -463,7 +540,7 @@ export default function SuperAdminStudentsPage() {
 
                 <div className="flex items-center gap-3 pt-3">
                   <button type="submit" disabled={submitting}
-                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium">
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
                     {submitting ? 'Adding...' : 'Add Student'}
                   </button>
                   <button type="button" onClick={() => setShowAddModal(false)}

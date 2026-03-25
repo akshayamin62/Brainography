@@ -210,7 +210,7 @@ export default function FingerprintScanPage() {
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
       </div>
     );
   }
@@ -278,14 +278,14 @@ export default function FingerprintScanPage() {
                               {imgUrl ? (
                                 <button
                                   onClick={() => setViewModal({ label: `${finger.label} - ${angle.label}`, imgUrl })}
-                                  className="w-60 h-72 rounded-lg border-2 border-green-400 bg-green-50 hover:border-green-500 transition-all inline-flex items-center justify-center overflow-hidden"
+                                  className="w-60 h-72 rounded-lg border-2 border-blue-400 bg-blue-50 hover:border-blue-500 transition-all inline-flex items-center justify-center overflow-hidden"
                                   title={`View ${finger.label} ${angle.label}`}
                                 >
                                   <img src={imgUrl} alt={`${finger.label} ${angle.label}`} className="w-full h-full object-cover" />
                                 </button>
                               ) : fp ? (
-                                <div className="w-28 h-32 rounded-lg border-2 border-green-400 bg-green-50 inline-flex items-center justify-center">
-                                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-28 h-32 rounded-lg border-2 border-blue-400 bg-blue-50 inline-flex items-center justify-center">
+                                  <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                   </svg>
                                 </div>
@@ -368,7 +368,7 @@ export default function FingerprintScanPage() {
                 {scanning ? (
                   <>
                     <button onClick={captureFingerprint} disabled={uploading}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium text-sm">
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm">
                       {uploading ? 'Saving...' : 'Capture'}
                     </button>
                     <button onClick={closeScanModal}

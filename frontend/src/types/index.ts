@@ -26,6 +26,7 @@ export interface User {
   role: USER_ROLE | string;
   isVerified: boolean;
   isActive?: boolean;
+  studentCount?: number;
   details?: AdminDetail | null;
   createdAt?: string;
   updatedAt?: string;

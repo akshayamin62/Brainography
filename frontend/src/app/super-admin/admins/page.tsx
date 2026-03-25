@@ -18,7 +18,11 @@ export default function AdminsPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<User | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'' | 'active' | 'inactive'>('');
+  const [sortField, setSortField] = useState<'name' | 'email' | 'students' | 'createdAt' | ''>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   // Form fields
   const [fFirstName, setFFirstName] = useState('');
@@ -57,6 +61,25 @@ export default function AdminsPage() {
   useEffect(() => {
     if (user) fetchAdmins();
   }, [user]);
+
+  const handleToggleActive = async (admin: User) => {
+    const newStatus = admin.isActive === false ? true : false;
+    const action = newStatus ? 'activate' : 'deactivate';
+    if (!confirm(`Are you sure you want to ${action} this admin?`)) return;
+    const adminId = admin._id || admin.id || '';
+    setTogglingId(adminId);
+    try {
+      const res = await adminAPI.update(adminId, { isActive: newStatus });
+      if (res.data.success) {
+        toast.success(`Admin ${action}d successfully`);
+        fetchAdmins();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || `Failed to ${action} admin`);
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const resetForm = () => {
     setFFirstName(''); setFMiddleName(''); setFLastName('');
@@ -145,11 +168,41 @@ export default function AdminsPage() {
     setShowEditModal(true);
   };
 
-  const filtered = admins.filter((a) =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.email.toLowerCase().includes(search.toLowerCase()) ||
-    (a.phone || '').toLowerCase().includes(search.toLowerCase())
+  const toggleSort = (field: typeof sortField) => {
+    if (sortField === field) setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('asc'); }
+  };
+
+  const SortIcon = ({ field }: { field: typeof sortField }) => (
+    <span className="inline-block ml-1 text-[10px] opacity-60">
+      {sortField === field ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+    </span>
   );
+
+  const filtered = useMemo(() => {
+    let list = admins.filter((a) => {
+      const q = search.toLowerCase();
+      if (q && !a.name.toLowerCase().includes(q) && !a.email.toLowerCase().includes(q) && !(a.phone || '').toLowerCase().includes(q)) return false;
+      if (filterStatus === 'active' && a.isActive === false) return false;
+      if (filterStatus === 'inactive' && a.isActive !== false) return false;
+      return true;
+    });
+    if (sortField) {
+      list = [...list].sort((a, b) => {
+        let va = '', vb = '';
+        if (sortField === 'name') { va = a.details?.companyName || a.name; vb = b.details?.companyName || b.name; }
+        else if (sortField === 'email') { va = a.email; vb = b.email; }
+        else if (sortField === 'students') {
+          return sortDir === 'asc'
+            ? (a.studentCount ?? 0) - (b.studentCount ?? 0)
+            : (b.studentCount ?? 0) - (a.studentCount ?? 0);
+        }
+        else if (sortField === 'createdAt') { va = a.createdAt || ''; vb = b.createdAt || ''; }
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      });
+    }
+    return list;
+  }, [admins, search, filterStatus, sortField, sortDir]);
 
   if (loading || !user) {
     return (
@@ -265,10 +318,20 @@ export default function AdminsPage() {
             </button>
           </div>
 
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
             <input type="text" placeholder="Search by name, email, or phone..."
               value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" />
+              className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 text-sm" />
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as typeof filterStatus)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            {filterStatus && (
+              <button onClick={() => setFilterStatus('')}
+                className="text-sm text-blue-600 hover:underline">Clear filters</button>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -277,11 +340,11 @@ export default function AdminsPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('name')}>Name<SortIcon field="name" /></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('email')}>Email<SortIcon field="email" /></th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Phone</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Company</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('students')}>Students<SortIcon field="students" /></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('createdAt')}>Created On<SortIcon field="createdAt" /></th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
@@ -292,17 +355,13 @@ export default function AdminsPage() {
                     filtered.map((admin, idx) => (
                       <tr key={admin._id || admin.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{admin.name}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{admin.details?.companyName || admin.name}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{admin.email}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {admin.phone ? `${admin.details?.countryCode || ''} ${admin.phone}` : '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{admin.details?.companyName || '-'}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${admin.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {admin.isActive !== false ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{admin.studentCount ?? 0}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{admin.createdAt ? new Date(admin.createdAt).toLocaleDateString() : '-'}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             <button onClick={() => openEdit(admin)}
@@ -310,6 +369,11 @@ export default function AdminsPage() {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
+                            </button>
+                            <button onClick={() => handleToggleActive(admin)} disabled={togglingId === (admin._id || admin.id)}
+                              className={`px-2 py-1 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${admin.isActive !== false ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}
+                              title={admin.isActive !== false ? 'Deactivate' : 'Activate'}>
+                              {togglingId === (admin._id || admin.id) ? '...' : (admin.isActive !== false ? 'Deactivate' : 'Activate')}
                             </button>
                           </div>
                         </td>

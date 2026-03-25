@@ -75,7 +75,7 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
       address, country, state, city,
       siblings, familyStructure, motherActivity, fatherActivity,
       hobbies, games, otherGames,
-      adminId,
+      adminId, standard,
     } = req.body;
 
     if (!firstName || !lastName || !dob || !gender || !mobile || !email ||
@@ -107,6 +107,7 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
       address, country, state, city,
       siblings: siblings ?? 0, familyStructure, motherActivity, fatherActivity,
       hobbies: hobbies || "", games, otherGames: otherGames || "",
+      standard: standard || "",
       name,
     });
 
@@ -147,7 +148,7 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<Re
       address, country, state, city,
       siblings, familyStructure, motherActivity, fatherActivity,
       hobbies, games, otherGames,
-      adminId,
+      adminId, standard,
     } = req.body;
 
     if (firstName !== undefined) student.firstName = firstName;
@@ -176,6 +177,7 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<Re
     if (hobbies !== undefined) student.hobbies = hobbies;
     if (games) student.games = games;
     if (otherGames !== undefined) student.otherGames = otherGames;
+    if (standard !== undefined) student.standard = standard;
     if (userRole === "SUPER_ADMIN" && adminId) student.adminId = adminId;
 
     // Recompute name
@@ -188,31 +190,6 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<Re
     return res.json({ success: true, message: "Student updated", data: populated });
   } catch (err) {
     console.error("Update student error:", err);
-    return res.status(500).json({ success: false, message: "Internal server error" });
-  }
-};
-
-// DELETE /api/students/:id - Delete student
-export const deleteStudent = async (req: AuthRequest, res: Response): Promise<Response> => {
-  try {
-    const { id } = req.params;
-    const userRole = req.user?.role;
-    const userId = req.user?.userId;
-
-    const student = await Student.findById(id);
-    if (!student) {
-      return res.status(404).json({ success: false, message: "Student not found" });
-    }
-
-    if (userRole === "ADMIN" && student.adminId?.toString() !== userId) {
-      return res.status(403).json({ success: false, message: "Access denied" });
-    }
-
-    await Student.findByIdAndDelete(id);
-
-    return res.json({ success: true, message: "Student deleted" });
-  } catch (err) {
-    console.error("Delete student error:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

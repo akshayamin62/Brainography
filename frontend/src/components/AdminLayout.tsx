@@ -49,7 +49,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
         <div className="h-14 border-b border-gray-200 flex items-center justify-between px-4">
           {sidebarOpen && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">A</span>
               </div>
               <span className="font-semibold text-gray-900">Admin Panel</span>
@@ -73,7 +73,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
               onClick={() => router.push(item.path)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
                 isActive(item.path)
-                  ? 'bg-green-50 text-green-600 font-semibold'
+                  ? 'bg-blue-50 text-blue-600 font-semibold'
                   : 'text-gray-700 hover:bg-gray-100 font-medium'
               } ${!sidebarOpen && 'justify-center'}`}
               title={!sidebarOpen ? item.name : undefined}
@@ -87,8 +87,8 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
         <div className="border-t border-gray-200 p-4">
           {sidebarOpen ? (
             <div className="mb-3 flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-green-600 font-semibold text-sm">{user?.name?.charAt(0)?.toUpperCase()}</span>
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-blue-600 font-semibold text-sm">{user?.name?.charAt(0)?.toUpperCase()}</span>
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
@@ -97,8 +97,8 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
             </div>
           ) : (
             <div className="mb-3 flex justify-center">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-semibold text-sm">{user?.name?.charAt(0)?.toUpperCase()}</span>
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 font-semibold text-sm">{user?.name?.charAt(0)?.toUpperCase()}</span>
               </div>
             </div>
           )}

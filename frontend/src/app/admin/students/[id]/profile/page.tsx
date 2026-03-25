@@ -69,6 +69,7 @@ export default function AdminStudentProfilePage() {
   const [fHobbies, setFHobbies] = useState('');
   const [fGames, setFGames] = useState('');
   const [fOtherGames, setFOtherGames] = useState('');
+  const [fStandard, setFStandard] = useState('');
 
   const phoneCodes = useMemo(() => {
     return Country.getAllCountries().map(c => ({
@@ -91,6 +92,7 @@ export default function AdminStudentProfilePage() {
   const showBoard = fEducationLevel === 'secondary_school' || fEducationLevel === 'higher_secondary_school';
   const showBoardFullName = showBoard && (fBoard === 'State Board' || fBoard === 'Other');
   const showFieldOfStudy = !!fEducationLevel && fEducationLevel !== 'secondary_school';
+  const showStandard = fEducationLevel === 'secondary_school' || fEducationLevel === 'higher_secondary_school';
 
   const fetchStudent = async () => {
     try {
@@ -134,6 +136,7 @@ export default function AdminStudentProfilePage() {
     setFHobbies(s.hobbies || '');
     setFGames(s.games || '');
     setFOtherGames(s.otherGames || '');
+    setFStandard(s.standard || '');
   };
 
   useEffect(() => {
@@ -158,6 +161,7 @@ export default function AdminStudentProfilePage() {
         motherActivity: fMotherActivity, fatherActivity: fFatherActivity,
         hobbies: fHobbies, games: fGames,
         otherGames: (fGames === 'Indoor' || fGames === 'Outdoor') ? fOtherGames : '',
+        standard: showStandard ? fStandard : '',
       });
       if (res.data.success) {
         toast.success('Student updated!');
@@ -174,7 +178,7 @@ export default function AdminStudentProfilePage() {
   if (loading || !user || fetching) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
       </div>
     );
   }
@@ -197,26 +201,26 @@ export default function AdminStudentProfilePage() {
   const instCountryLabel = countries.find(c => c.isoCode === student.institutionCountry)?.name || student.institutionCountry || '—';
 
   const InfoRow = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex items-start py-2 border-b border-gray-100 last:border-0">
-      <span className="w-44 text-sm font-medium text-gray-500 shrink-0">{label}</span>
-      <span className="text-sm text-gray-900">{value || '—'}</span>
+    <div className="py-2">
+      <span className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-0.5">{label}</span>
+      <span className="text-sm text-gray-900 font-medium">{value || '—'}</span>
     </div>
   );
 
   const SectionHead = ({ title }: { title: string }) => (
-    <div className="pt-4 pb-1 first:pt-0">
-      <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide">{title}</h3>
+    <div className="col-span-full pt-5 pb-2 first:pt-0">
+      <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide border-b border-blue-100 pb-1">{title}</h3>
     </div>
   );
 
-  const inputCls = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm text-gray-900";
+  const inputCls = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900";
 
   return (
     <>
       <Toaster position="top-right" />
       <Navbar />
       <AdminLayout user={user}>
-        <div className="p-6 max-w-3xl">
+        <div className="p-6 mx-auto">
           <button onClick={() => router.push('/admin/students')}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,7 +234,7 @@ export default function AdminStudentProfilePage() {
               <h1 className="text-xl font-bold text-gray-900">Student Profile</h1>
               {!editing && (
                 <button onClick={() => setEditing(true)}
-                  className="px-3 py-1.5 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                  className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                   Edit
                 </button>
               )}
@@ -239,7 +243,7 @@ export default function AdminStudentProfilePage() {
             {editing ? (
               <form onSubmit={handleUpdate} className="p-6 space-y-3">
                 {/* Personal */}
-                <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide pb-1">Personal Information</h3>
+                <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide pb-1">Personal Information</h3>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
@@ -265,7 +269,7 @@ export default function AdminStudentProfilePage() {
                       {['Male', 'Female'].map(g => (
                         <label key={g} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
                           <input type="radio" name="editGender" value={g} checked={fGender === g} onChange={() => setFGender(g)}
-                            className="accent-green-600" /> {g}
+                            className="accent-blue-600" /> {g}
                         </label>
                       ))}
                     </div>
@@ -288,7 +292,7 @@ export default function AdminStudentProfilePage() {
                 </div>
 
                 {/* Academic */}
-                <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide pt-3 pb-1">Academic Information</h3>
+                <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide pt-3 pb-1">Academic Information</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Education Level *</label>
@@ -311,6 +315,12 @@ export default function AdminStudentProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Board Full Name *</label>
                     <input type="text" value={fBoardFullName} onChange={e => setFBoardFullName(e.target.value)} className={inputCls} required />
+                  </div>
+                )}
+                {showStandard && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Standard *</label>
+                    <input type="number" min="1" max="12" value={fStandard} onChange={e => setFStandard(e.target.value)} className={inputCls} required />
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
@@ -338,7 +348,7 @@ export default function AdminStudentProfilePage() {
                 </div>
 
                 {/* Address */}
-                <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide pt-3 pb-1">Address</h3>
+                <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide pt-3 pb-1">Address</h3>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
                   <input type="text" value={fAddress} onChange={e => setFAddress(e.target.value)} className={inputCls} required />
@@ -368,7 +378,7 @@ export default function AdminStudentProfilePage() {
                 </div>
 
                 {/* Family */}
-                <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide pt-3 pb-1">Family Information</h3>
+                <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide pt-3 pb-1">Family Information</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">No. of Siblings</label>
@@ -406,7 +416,7 @@ export default function AdminStudentProfilePage() {
                 </div>
 
                 {/* Additional */}
-                <h3 className="text-sm font-semibold text-green-700 uppercase tracking-wide pt-3 pb-1">Additional Information</h3>
+                <h3 className="text-sm font-semibold text-blue-700 uppercase tracking-wide pt-3 pb-1">Additional Information</h3>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Hobbies</label>
                   <input type="text" value={fHobbies} onChange={e => setFHobbies(e.target.value)} className={inputCls} />
@@ -431,7 +441,7 @@ export default function AdminStudentProfilePage() {
 
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={submitting}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium text-sm">
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-sm">
                     {submitting ? 'Updating...' : 'Save Changes'}
                   </button>
                   <button type="button" onClick={() => { setEditing(false); if (student) populateForm(student); }}
@@ -441,20 +451,21 @@ export default function AdminStudentProfilePage() {
                 </div>
               </form>
             ) : (
-              <div className="p-6">
+              <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1">
                 <SectionHead title="Personal Information" />
                 <InfoRow label="First Name" value={student.firstName} />
                 <InfoRow label="Middle Name" value={student.middleName || ''} />
                 <InfoRow label="Last Name" value={student.lastName} />
                 <InfoRow label="Date of Birth" value={student.dob ? new Date(student.dob).toLocaleDateString() : '—'} />
                 <InfoRow label="Gender" value={student.gender} />
-                <InfoRow label="Mobile" value={`${student.countryCode || ''} ${student.mobile}`} />
                 <InfoRow label="Email" value={student.email} />
+                <InfoRow label="Mobile" value={`${student.countryCode || ''} ${student.mobile}`} />
 
                 <SectionHead title="Academic Information" />
                 <InfoRow label="Education Level" value={educLabel} />
                 {student.board && <InfoRow label="Board" value={boardLabel} />}
                 {student.boardFullName && <InfoRow label="Board Full Name" value={student.boardFullName} />}
+                {student.standard && <InfoRow label="Standard" value={student.standard} />}
                 <InfoRow label="Institution" value={student.institutionName} />
                 <InfoRow label="Institution Country" value={instCountryLabel} />
                 {student.fieldOfStudy && <InfoRow label="Field of Study" value={student.fieldOfStudy} />}
@@ -477,9 +488,8 @@ export default function AdminStudentProfilePage() {
                 <InfoRow label="Games" value={student.games} />
                 {student.otherGames && <InfoRow label="Specified Games" value={student.otherGames} />}
 
-                <div className="pt-4">
-                  <InfoRow label="Created" value={student.createdAt ? new Date(student.createdAt).toLocaleDateString() : '—'} />
-                </div>
+                <SectionHead title="System Information" />
+                <InfoRow label="Created" value={student.createdAt ? new Date(student.createdAt).toLocaleDateString() : '—'} />
               </div>
             )}
           </div>
