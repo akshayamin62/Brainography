@@ -69,10 +69,20 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
   try {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
-    const { name, parentName, mobile, email, university, standard, address, dob, gender, adminId } = req.body;
+    const {
+      firstName, middleName, lastName, dob, gender, countryCode, mobile, email,
+      educationLevel, board, boardFullName, institutionName, institutionCountry, fieldOfStudy, mediumOfTeaching,
+      address, country, state, city,
+      siblings, familyStructure, motherActivity, fatherActivity,
+      hobbies, games, otherGames,
+      adminId,
+    } = req.body;
 
-    if (!name || !parentName || !mobile || !email || !university || !standard || !address || !dob || !gender) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
+    if (!firstName || !lastName || !dob || !gender || !mobile || !email ||
+        !educationLevel || !institutionName || !institutionCountry || !mediumOfTeaching ||
+        !address || !country || !state || !city ||
+        !familyStructure || !motherActivity || !fatherActivity || !games) {
+      return res.status(400).json({ success: false, message: "All required fields must be provided" });
     }
 
     // Determine the admin owner
@@ -86,17 +96,18 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
       assignedAdminId = adminId;
     }
 
+    const name = [firstName, middleName, lastName].filter(Boolean).join(" ");
+
     const student = new Student({
       adminId: assignedAdminId,
+      firstName, middleName: middleName || "", lastName,
+      dob, gender, countryCode: countryCode || "+91", mobile, email,
+      educationLevel, board: board || "", boardFullName: boardFullName || "",
+      institutionName, institutionCountry, fieldOfStudy: fieldOfStudy || "", mediumOfTeaching,
+      address, country, state, city,
+      siblings: siblings ?? 0, familyStructure, motherActivity, fatherActivity,
+      hobbies: hobbies || "", games, otherGames: otherGames || "",
       name,
-      parentName,
-      mobile,
-      email,
-      university,
-      standard,
-      address,
-      dob,
-      gender,
     });
 
     await student.save();
@@ -130,18 +141,45 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<Re
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    const { name, parentName, mobile, email, university, standard, address, dob, gender, adminId } = req.body;
+    const {
+      firstName, middleName, lastName, dob, gender, countryCode, mobile, email,
+      educationLevel, board, boardFullName, institutionName, institutionCountry, fieldOfStudy, mediumOfTeaching,
+      address, country, state, city,
+      siblings, familyStructure, motherActivity, fatherActivity,
+      hobbies, games, otherGames,
+      adminId,
+    } = req.body;
 
-    if (name) student.name = name;
-    if (parentName) student.parentName = parentName;
-    if (mobile) student.mobile = mobile;
-    if (email) student.email = email;
-    if (university) student.university = university;
-    if (standard) student.standard = standard;
-    if (address) student.address = address;
+    if (firstName !== undefined) student.firstName = firstName;
+    if (middleName !== undefined) student.middleName = middleName;
+    if (lastName !== undefined) student.lastName = lastName;
     if (dob) student.dob = dob;
     if (gender) student.gender = gender;
+    if (countryCode) student.countryCode = countryCode;
+    if (mobile) student.mobile = mobile;
+    if (email) student.email = email;
+    if (educationLevel) student.educationLevel = educationLevel;
+    if (board !== undefined) student.board = board;
+    if (boardFullName !== undefined) student.boardFullName = boardFullName;
+    if (institutionName) student.institutionName = institutionName;
+    if (institutionCountry) student.institutionCountry = institutionCountry;
+    if (fieldOfStudy !== undefined) student.fieldOfStudy = fieldOfStudy;
+    if (mediumOfTeaching) student.mediumOfTeaching = mediumOfTeaching;
+    if (address) student.address = address;
+    if (country) student.country = country;
+    if (state) student.state = state;
+    if (city) student.city = city;
+    if (siblings !== undefined) student.siblings = siblings;
+    if (familyStructure) student.familyStructure = familyStructure;
+    if (motherActivity) student.motherActivity = motherActivity;
+    if (fatherActivity) student.fatherActivity = fatherActivity;
+    if (hobbies !== undefined) student.hobbies = hobbies;
+    if (games) student.games = games;
+    if (otherGames !== undefined) student.otherGames = otherGames;
     if (userRole === "SUPER_ADMIN" && adminId) student.adminId = adminId;
+
+    // Recompute name
+    student.name = [student.firstName, student.middleName, student.lastName].filter(Boolean).join(" ");
 
     await student.save();
 

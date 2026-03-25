@@ -34,15 +34,42 @@ export interface User {
 export interface Student {
   _id: string;
   adminId: User | string;
-  name: string;
-  parentName: string;
-  mobile: string;
-  email: string;
-  university: string;
-  standard: string;
-  address: string;
+  // Personal
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   dob: string;
   gender: string;
+  countryCode: string;
+  mobile: string;
+  email: string;
+  // Academic
+  educationLevel: string;
+  board?: string;
+  boardFullName?: string;
+  institutionName: string;
+  institutionCountry: string;
+  fieldOfStudy?: string;
+  mediumOfTeaching: string;
+  // Address
+  address: string;
+  country: string;
+  state: string;
+  city: string;
+  // Family
+  siblings: number;
+  familyStructure: string;
+  motherActivity: string;
+  fatherActivity: string;
+  // Additional
+  hobbies?: string;
+  games: string;
+  otherGames?: string;
+  // Legacy
+  name: string;
+  parentName?: string;
+  university?: string;
+  standard?: string;
   document?: { _id: string; filename: string; originalName: string } | null;
   createdAt?: string;
   updatedAt?: string;

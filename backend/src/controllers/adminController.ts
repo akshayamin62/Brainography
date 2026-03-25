@@ -51,8 +51,8 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<Resp
   try {
     const { firstName, middleName, lastName, email, phone, countryCode, companyName, address, country, state, city } = req.body;
 
-    if (!firstName || !lastName || !email) {
-      return res.status(400).json({ success: false, message: "First name, last name, and email are required" });
+    if (!firstName || !lastName || !email || !companyName || !phone) {
+      return res.status(400).json({ success: false, message: "First name, last name, email, company name, and mobile are required" });
     }
 
     const existing = await User.findOne({ email: email.toLowerCase() });

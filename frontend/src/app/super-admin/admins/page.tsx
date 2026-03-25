@@ -38,15 +38,10 @@ export default function AdminsPage() {
   const cities = useMemo(() => fCountry && fState ? City.getCitiesOfState(fCountry, fState) : [], [fCountry, fState]);
 
   const phoneCodes = useMemo(() => {
-    const seen = new Set<string>();
-    return countries.filter(c => {
-      const code = c.phonecode.startsWith('+') ? c.phonecode : `+${c.phonecode}`;
-      if (seen.has(code)) return false;
-      seen.add(code);
-      return true;
-    }).map(c => ({
+    return countries.map(c => ({
       code: c.phonecode.startsWith('+') ? c.phonecode : `+${c.phonecode}`,
       name: c.name,
+      isoCode: c.isoCode,
     })).sort((a, b) => a.name.localeCompare(b.name));
   }, [countries]);
 
@@ -86,8 +81,8 @@ export default function AdminsPage() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fFirstName || !fLastName || !fEmail) {
-      toast.error('First name, last name, and email are required');
+    if (!fFirstName || !fLastName || !fEmail || !fCompanyName || !fMobile) {
+      toast.error('First name, last name, email, company name, and mobile are required');
       return;
     }
     setSubmitting(true);
@@ -194,20 +189,20 @@ export default function AdminsPage() {
           <select value={fCountryCode} onChange={(e) => setFCountryCode(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900">
             {phoneCodes.map((pc) => (
-              <option key={pc.code + pc.name} value={pc.code}>{pc.code} ({pc.name})</option>
+              <option key={pc.isoCode} value={pc.code}>{pc.code} ({pc.name})</option>
             ))}
           </select>
         </div>
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mobile *</label>
           <input type="text" value={fMobile} onChange={(e) => setFMobile(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" />
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" required />
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
         <input type="text" value={fCompanyName} onChange={(e) => setFCompanyName(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" />
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" required />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>

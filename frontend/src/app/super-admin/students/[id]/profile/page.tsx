@@ -1,13 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import SuperAdminLayout from '@/components/SuperAdminLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { studentAPI, documentAPI, BACKEND_URL, withToken } from '@/lib/api';
+import { studentAPI, BACKEND_URL } from '@/lib/api';
 import { Student } from '@/types';
+import { Country, State, City } from 'country-state-city';
 import toast, { Toaster } from 'react-hot-toast';
+
+const EDUCATION_LEVELS = [
+  { label: 'Secondary School', value: 'secondary_school' },
+  { label: 'Higher Secondary School', value: 'higher_secondary_school' },
+  { label: 'Associate Degree', value: 'associate' },
+  { label: "Bachelor's Degree", value: 'bachelors' },
+  { label: "Master's Degree", value: 'masters' },
+  { label: 'Doctorate', value: 'doctorate' },
+];
+const BOARD_OPTIONS = [
+  { label: 'CBSE', value: 'CBSE' },
+  { label: 'ICSE', value: 'ICSE' },
+  { label: 'IGCSE', value: 'IGCSE' },
+  { label: 'IB/Cambridge', value: 'IB_Cambridge' },
+  { label: 'State Board', value: 'State Board' },
+  { label: 'Other', value: 'Other' },
+];
 
 export default function SuperAdminStudentProfilePage() {
   const { user, loading } = useAuth('SUPER_ADMIN');
@@ -21,15 +39,59 @@ export default function SuperAdminStudentProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const [fName, setFName] = useState('');
-  const [fParentName, setFParentName] = useState('');
-  const [fMobile, setFMobile] = useState('');
-  const [fEmail, setFEmail] = useState('');
-  const [fUniversity, setFUniversity] = useState('');
-  const [fStandard, setFStandard] = useState('');
-  const [fAddress, setFAddress] = useState('');
+  // Personal
+  const [fFirstName, setFFirstName] = useState('');
+  const [fMiddleName, setFMiddleName] = useState('');
+  const [fLastName, setFLastName] = useState('');
   const [fDob, setFDob] = useState('');
   const [fGender, setFGender] = useState('Male');
+  const [fCountryCode, setFCountryCode] = useState('+91');
+  const [fMobile, setFMobile] = useState('');
+  const [fEmail, setFEmail] = useState('');
+  // Academic
+  const [fEducationLevel, setFEducationLevel] = useState('');
+  const [fBoard, setFBoard] = useState('');
+  const [fBoardFullName, setFBoardFullName] = useState('');
+  const [fInstitutionName, setFInstitutionName] = useState('');
+  const [fInstitutionCountry, setFInstitutionCountry] = useState('');
+  const [fFieldOfStudy, setFFieldOfStudy] = useState('');
+  const [fMediumOfTeaching, setFMediumOfTeaching] = useState('');
+  // Address
+  const [fAddress, setFAddress] = useState('');
+  const [fCountry, setFCountry] = useState('');
+  const [fState, setFState] = useState('');
+  const [fCity, setFCity] = useState('');
+  // Family
+  const [fSiblings, setFSiblings] = useState(0);
+  const [fFamilyStructure, setFFamilyStructure] = useState('');
+  const [fMotherActivity, setFMotherActivity] = useState('');
+  const [fFatherActivity, setFFatherActivity] = useState('');
+  // Additional
+  const [fHobbies, setFHobbies] = useState('');
+  const [fGames, setFGames] = useState('');
+  const [fOtherGames, setFOtherGames] = useState('');
+
+  const phoneCodes = useMemo(() => {
+    return Country.getAllCountries().map(c => ({
+      code: `+${c.phonecode.replace('+', '')}`,
+      name: c.name,
+      isoCode: c.isoCode,
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  const countries = useMemo(() => Country.getAllCountries(), []);
+  const states = useMemo(() => {
+    if (!fCountry) return [];
+    return State.getStatesOfCountry(fCountry);
+  }, [fCountry]);
+  const cities = useMemo(() => {
+    if (!fCountry || !fState) return [];
+    return City.getCitiesOfState(fCountry, fState);
+  }, [fCountry, fState]);
+
+  const showBoard = fEducationLevel === 'secondary_school' || fEducationLevel === 'higher_secondary_school';
+  const showBoardFullName = showBoard && (fBoard === 'State Board' || fBoard === 'Other');
+  const showFieldOfStudy = !!fEducationLevel && fEducationLevel !== 'secondary_school';
 
   const fetchStudent = async () => {
     try {
@@ -47,9 +109,32 @@ export default function SuperAdminStudentProfilePage() {
   };
 
   const populateForm = (s: Student) => {
-    setFName(s.name); setFParentName(s.parentName); setFMobile(s.mobile);
-    setFEmail(s.email); setFUniversity(s.university); setFStandard(s.standard);
-    setFAddress(s.address); setFDob(s.dob); setFGender(s.gender);
+    setFFirstName(s.firstName || '');
+    setFMiddleName(s.middleName || '');
+    setFLastName(s.lastName || '');
+    setFDob(s.dob || '');
+    setFGender(s.gender || 'Male');
+    setFCountryCode(s.countryCode || '+91');
+    setFMobile(s.mobile || '');
+    setFEmail(s.email || '');
+    setFEducationLevel(s.educationLevel || '');
+    setFBoard(s.board || '');
+    setFBoardFullName(s.boardFullName || '');
+    setFInstitutionName(s.institutionName || '');
+    setFInstitutionCountry(s.institutionCountry || '');
+    setFFieldOfStudy(s.fieldOfStudy || '');
+    setFMediumOfTeaching(s.mediumOfTeaching || '');
+    setFAddress(s.address || '');
+    setFCountry(s.country || '');
+    setFState(s.state || '');
+    setFCity(s.city || '');
+    setFSiblings(s.siblings ?? 0);
+    setFFamilyStructure(s.familyStructure || '');
+    setFMotherActivity(s.motherActivity || '');
+    setFFatherActivity(s.fatherActivity || '');
+    setFHobbies(s.hobbies || '');
+    setFGames(s.games || '');
+    setFOtherGames(s.otherGames || '');
   };
 
   useEffect(() => {
@@ -61,8 +146,19 @@ export default function SuperAdminStudentProfilePage() {
     setSubmitting(true);
     try {
       const res = await studentAPI.update(studentId, {
-        name: fName, parentName: fParentName, mobile: fMobile, email: fEmail,
-        university: fUniversity, standard: fStandard, address: fAddress, dob: fDob, gender: fGender,
+        firstName: fFirstName, middleName: fMiddleName, lastName: fLastName,
+        dob: fDob, gender: fGender, countryCode: fCountryCode, mobile: fMobile, email: fEmail,
+        educationLevel: fEducationLevel,
+        board: showBoard ? fBoard : '',
+        boardFullName: showBoardFullName ? fBoardFullName : '',
+        institutionName: fInstitutionName, institutionCountry: fInstitutionCountry,
+        fieldOfStudy: showFieldOfStudy ? fFieldOfStudy : '',
+        mediumOfTeaching: fMediumOfTeaching,
+        address: fAddress, country: fCountry, state: fState, city: fCity,
+        siblings: fSiblings, familyStructure: fFamilyStructure,
+        motherActivity: fMotherActivity, fatherActivity: fFatherActivity,
+        hobbies: fHobbies, games: fGames,
+        otherGames: (fGames === 'Indoor' || fGames === 'Outdoor') ? fOtherGames : '',
       });
       if (res.data.success) {
         toast.success('Student updated!');
@@ -81,7 +177,6 @@ export default function SuperAdminStudentProfilePage() {
     setDeleting(true);
     try {
       const token = localStorage.getItem('token');
-      await studentAPI.get(studentId); // verify exists
       const res = await fetch(`${BACKEND_URL}/api/students/${studentId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -122,13 +217,26 @@ export default function SuperAdminStudentProfilePage() {
   const adminName = typeof student.adminId === 'object' && student.adminId
     ? (student.adminId as any).name
     : '—';
+  const educLabel = EDUCATION_LEVELS.find(e => e.value === student.educationLevel)?.label || student.educationLevel || '—';
+  const boardLabel = BOARD_OPTIONS.find(b => b.value === student.board)?.label || student.board || '';
+  const countryLabel = countries.find(c => c.isoCode === student.country)?.name || student.country || '—';
+  const stateLabel = student.country ? (State.getStatesOfCountry(student.country).find(s => s.isoCode === student.state)?.name || student.state || '—') : '—';
+  const instCountryLabel = countries.find(c => c.isoCode === student.institutionCountry)?.name || student.institutionCountry || '—';
 
   const InfoRow = ({ label, value }: { label: string; value: string }) => (
     <div className="flex items-start py-2 border-b border-gray-100 last:border-0">
-      <span className="w-36 text-sm font-medium text-gray-500 shrink-0">{label}</span>
+      <span className="w-44 text-sm font-medium text-gray-500 shrink-0">{label}</span>
       <span className="text-sm text-gray-900">{value || '—'}</span>
     </div>
   );
+
+  const SectionHead = ({ title }: { title: string }) => (
+    <div className="pt-4 pb-1 first:pt-0">
+      <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide">{title}</h3>
+    </div>
+  );
+
+  const inputCls = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900";
 
   return (
     <>
@@ -165,63 +273,197 @@ export default function SuperAdminStudentProfilePage() {
 
             {editing ? (
               <form onSubmit={handleUpdate} className="p-6 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                {/* Personal */}
+                <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide pb-1">Personal Information</h3>
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                    <input type="text" value={fName} onChange={(e) => setFName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900" required />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                    <input type="text" value={fFirstName} onChange={e => setFFirstName(e.target.value)} className={inputCls} required />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Parent Name *</label>
-                    <input type="text" value={fParentName} onChange={(e) => setFParentName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900" required />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                    <input type="email" value={fEmail} onChange={(e) => setFEmail(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900" required />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                    <input type="text" value={fMiddleName} onChange={e => setFMiddleName(e.target.value)} className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile *</label>
-                    <input type="text" value={fMobile} onChange={(e) => setFMobile(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900" required />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                    <input type="text" value={fLastName} onChange={e => setFLastName(e.target.value)} className={inputCls} required />
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">University *</label>
-                    <input type="text" value={fUniversity} onChange={(e) => setFUniversity(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900" required />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Standard *</label>
-                    <input type="text" value={fStandard} onChange={(e) => setFStandard(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900" required />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-                  <input type="text" value={fAddress} onChange={(e) => setFAddress(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900" required />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
-                    <input type="date" value={fDob} onChange={(e) => setFDob(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900" required />
+                    <input type="date" value={fDob} onChange={e => setFDob(e.target.value)} className={inputCls} required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-                    <select value={fGender} onChange={(e) => setFGender(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-900">
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
+                    <div className="flex items-center gap-4 mt-2">
+                      {['Male', 'Female'].map(g => (
+                        <label key={g} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+                          <input type="radio" name="editGender" value={g} checked={fGender === g} onChange={() => setFGender(g)}
+                            className="accent-indigo-600" /> {g}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile *</label>
+                    <div className="flex gap-2">
+                      <select value={fCountryCode} onChange={e => setFCountryCode(e.target.value)} className="w-28 px-2 py-2 border border-gray-300 rounded-lg text-sm text-gray-900">
+                        {phoneCodes.map(pc => <option key={pc.isoCode} value={pc.code}>{pc.code} ({pc.name})</option>)}
+                      </select>
+                      <input type="text" value={fMobile} onChange={e => setFMobile(e.target.value)} className={inputCls + " flex-1"} required />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} className={inputCls} required />
+                  </div>
+                </div>
+
+                {/* Academic */}
+                <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide pt-3 pb-1">Academic Information</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Education Level *</label>
+                    <select value={fEducationLevel} onChange={e => { setFEducationLevel(e.target.value); setFBoard(''); setFBoardFullName(''); setFFieldOfStudy(''); }} className={inputCls} required>
+                      <option value="">Select</option>
+                      {EDUCATION_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                    </select>
+                  </div>
+                  {showBoard && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Board *</label>
+                      <select value={fBoard} onChange={e => { setFBoard(e.target.value); setFBoardFullName(''); }} className={inputCls} required>
+                        <option value="">Select</option>
+                        {BOARD_OPTIONS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                {showBoardFullName && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Board Full Name *</label>
+                    <input type="text" value={fBoardFullName} onChange={e => setFBoardFullName(e.target.value)} className={inputCls} required />
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Institution Name *</label>
+                    <input type="text" value={fInstitutionName} onChange={e => setFInstitutionName(e.target.value)} className={inputCls} required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Institution Country *</label>
+                    <select value={fInstitutionCountry} onChange={e => setFInstitutionCountry(e.target.value)} className={inputCls} required>
+                      <option value="">Select</option>
+                      {countries.map(c => <option key={c.isoCode} value={c.isoCode}>{c.name}</option>)}
                     </select>
                   </div>
                 </div>
+                {showFieldOfStudy && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Field of Study</label>
+                    <input type="text" value={fFieldOfStudy} onChange={e => setFFieldOfStudy(e.target.value)} className={inputCls} />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Medium of Teaching *</label>
+                  <input type="text" value={fMediumOfTeaching} onChange={e => setFMediumOfTeaching(e.target.value)} className={inputCls} required />
+                </div>
+
+                {/* Address */}
+                <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide pt-3 pb-1">Address</h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+                  <input type="text" value={fAddress} onChange={e => setFAddress(e.target.value)} className={inputCls} required />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
+                    <select value={fCountry} onChange={e => { setFCountry(e.target.value); setFState(''); setFCity(''); }} className={inputCls} required>
+                      <option value="">Select</option>
+                      {countries.map(c => <option key={c.isoCode} value={c.isoCode}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                    <select value={fState} onChange={e => { setFState(e.target.value); setFCity(''); }} className={inputCls} required>
+                      <option value="">Select</option>
+                      {states.map(s => <option key={s.isoCode} value={s.isoCode}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                    <select value={fCity} onChange={e => setFCity(e.target.value)} className={inputCls} required>
+                      <option value="">Select</option>
+                      {cities.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Family */}
+                <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide pt-3 pb-1">Family Information</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">No. of Siblings</label>
+                    <select value={fSiblings} onChange={e => setFSiblings(Number(e.target.value))} className={inputCls}>
+                      {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Family Structure *</label>
+                    <select value={fFamilyStructure} onChange={e => setFFamilyStructure(e.target.value)} className={inputCls} required>
+                      <option value="">Select</option>
+                      <option value="Nuclear">Nuclear</option>
+                      <option value="Joint">Joint</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mother&apos;s Activity *</label>
+                    <select value={fMotherActivity} onChange={e => setFMotherActivity(e.target.value)} className={inputCls} required>
+                      <option value="">Select</option>
+                      <option value="Working">Working</option>
+                      <option value="Homemaker">Homemaker</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Father&apos;s Activity *</label>
+                    <select value={fFatherActivity} onChange={e => setFFatherActivity(e.target.value)} className={inputCls} required>
+                      <option value="">Select</option>
+                      <option value="Business">Business</option>
+                      <option value="Service">Service</option>
+                      <option value="Professional">Professional</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Additional */}
+                <h3 className="text-sm font-semibold text-indigo-700 uppercase tracking-wide pt-3 pb-1">Additional Information</h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hobbies</label>
+                  <input type="text" value={fHobbies} onChange={e => setFHobbies(e.target.value)} className={inputCls} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Games *</label>
+                    <select value={fGames} onChange={e => { setFGames(e.target.value); setFOtherGames(''); }} className={inputCls} required>
+                      <option value="">Select</option>
+                      <option value="Indoor">Indoor</option>
+                      <option value="Outdoor">Outdoor</option>
+                      <option value="Both">Both</option>
+                    </select>
+                  </div>
+                  {(fGames === 'Indoor' || fGames === 'Outdoor') && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Specify Games</label>
+                      <input type="text" value={fOtherGames} onChange={e => setFOtherGames(e.target.value)} className={inputCls} />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-3 pt-2">
                   <button type="submit" disabled={submitting}
                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium text-sm">
@@ -235,17 +477,45 @@ export default function SuperAdminStudentProfilePage() {
               </form>
             ) : (
               <div className="p-6">
-                <InfoRow label="Name" value={student.name} />
-                <InfoRow label="Parent Name" value={student.parentName} />
-                <InfoRow label="Email" value={student.email} />
-                <InfoRow label="Mobile" value={student.mobile} />
-                <InfoRow label="University" value={student.university} />
-                <InfoRow label="Standard" value={student.standard} />
-                <InfoRow label="Address" value={student.address} />
+                <SectionHead title="Personal Information" />
+                <InfoRow label="First Name" value={student.firstName} />
+                <InfoRow label="Middle Name" value={student.middleName || ''} />
+                <InfoRow label="Last Name" value={student.lastName} />
                 <InfoRow label="Date of Birth" value={student.dob ? new Date(student.dob).toLocaleDateString() : '—'} />
                 <InfoRow label="Gender" value={student.gender} />
-                <InfoRow label="Assigned Admin" value={adminName} />
-                <InfoRow label="Created" value={student.createdAt ? new Date(student.createdAt).toLocaleDateString() : '—'} />
+                <InfoRow label="Mobile" value={`${student.countryCode || ''} ${student.mobile}`} />
+                <InfoRow label="Email" value={student.email} />
+
+                <SectionHead title="Academic Information" />
+                <InfoRow label="Education Level" value={educLabel} />
+                {student.board && <InfoRow label="Board" value={boardLabel} />}
+                {student.boardFullName && <InfoRow label="Board Full Name" value={student.boardFullName} />}
+                <InfoRow label="Institution" value={student.institutionName} />
+                <InfoRow label="Institution Country" value={instCountryLabel} />
+                {student.fieldOfStudy && <InfoRow label="Field of Study" value={student.fieldOfStudy} />}
+                <InfoRow label="Medium of Teaching" value={student.mediumOfTeaching} />
+
+                <SectionHead title="Address" />
+                <InfoRow label="Address" value={student.address} />
+                <InfoRow label="Country" value={countryLabel} />
+                <InfoRow label="State" value={stateLabel} />
+                <InfoRow label="City" value={student.city} />
+
+                <SectionHead title="Family Information" />
+                <InfoRow label="Siblings" value={String(student.siblings ?? 0)} />
+                <InfoRow label="Family Structure" value={student.familyStructure} />
+                <InfoRow label="Mother's Activity" value={student.motherActivity} />
+                <InfoRow label="Father's Activity" value={student.fatherActivity} />
+
+                <SectionHead title="Additional Information" />
+                <InfoRow label="Hobbies" value={student.hobbies || ''} />
+                <InfoRow label="Games" value={student.games} />
+                {student.otherGames && <InfoRow label="Specified Games" value={student.otherGames} />}
+
+                <div className="pt-4">
+                  <InfoRow label="Assigned Admin" value={adminName} />
+                  <InfoRow label="Created" value={student.createdAt ? new Date(student.createdAt).toLocaleDateString() : '—'} />
+                </div>
               </div>
             )}
           </div>

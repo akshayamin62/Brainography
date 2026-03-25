@@ -41,6 +41,7 @@ export default function SAFingerprintPage() {
 
   // Modal state
   const [scanModal, setScanModal] = useState<{ position: string; angle: string; label: string } | null>(null);
+  const [viewModal, setViewModal] = useState<{ label: string; imgUrl: string } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -271,29 +272,36 @@ export default function SAFingerprintPage() {
                         const fp = fingerprints[key];
                         const imgUrl = fp?.fileExists ? withToken(`${BACKEND_URL}/uploads/fingerprints/${fp.filename}`) : null;
                         return (
-                          <td key={angle.key} className="px-4 py-2 text-center">
-                            <button
-                              onClick={() => openScanModal(finger.id, angle.key, `${finger.label} - ${angle.label}`)}
-                              className={`w-20 h-24 rounded-lg border-2 transition-all inline-flex items-center justify-center overflow-hidden ${
-                                fp ? 'border-green-400 bg-green-50 hover:border-green-500' : 'border-gray-300 bg-gray-50 hover:border-purple-400 hover:bg-purple-50'
-                              }`}
-                              title={fp ? `Rescan ${finger.label} ${angle.label}` : `Scan ${finger.label} ${angle.label}`}
-                            >
+                          <td key={angle.key} className="px-2 py-1.5 text-center">
+                            <div className="inline-flex flex-col items-center gap-1">
                               {imgUrl ? (
-                                <img src={imgUrl} alt={`${finger.label} ${angle.label}`} className="w-full h-full object-cover" />
+                                <button
+                                  onClick={() => setViewModal({ label: `${finger.label} - ${angle.label}`, imgUrl })}
+                                  className="w-60 h-72 rounded-lg border-2 border-green-400 bg-green-50 hover:border-green-500 transition-all inline-flex items-center justify-center overflow-hidden"
+                                  title={`View ${finger.label} ${angle.label}`}
+                                >
+                                  <img src={imgUrl} alt={`${finger.label} ${angle.label}`} className="w-full h-full object-cover" />
+                                </button>
                               ) : fp ? (
-                                <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
+                                <div className="w-28 h-32 rounded-lg border-2 border-green-400 bg-green-50 inline-flex items-center justify-center">
+                                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
                               ) : (
-                                <div className="text-center">
-                                  <svg className="w-5 h-5 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-28 h-32 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 inline-flex items-center justify-center">
+                                  <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
                                   </svg>
-                                  <span className="text-[10px] text-gray-400 mt-0.5 block">Scan</span>
                                 </div>
                               )}
-                            </button>
+                              <button
+                                onClick={() => openScanModal(finger.id, angle.key, `${finger.label} - ${angle.label}`)}
+                                className="text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline"
+                              >
+                                {fp ? 'Scan Again' : 'Scan'}
+                              </button>
+                            </div>
                           </td>
                         );
                       })}
@@ -304,6 +312,25 @@ export default function SAFingerprintPage() {
             </div>
           </div>
         </div>
+
+        {/* View Modal */}
+        {viewModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setViewModal(null)}>
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900">{viewModal.label}</h3>
+                <button onClick={() => setViewModal(null)} className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" style={{ minHeight: '320px' }}>
+                <img src={viewModal.imgUrl} alt={viewModal.label} className="max-w-full max-h-[400px] object-contain" />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Scan Modal */}
         {scanModal && (
