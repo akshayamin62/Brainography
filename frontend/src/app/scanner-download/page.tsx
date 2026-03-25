@@ -195,7 +195,7 @@ export default function ScannerDownloadPage() {
       </div>
 
       {/* Installation steps */}
-      {active && active !== 'other' && (
+      {active && (
         <div className="w-full max-w-lg bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm">
           <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
