@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import SuperAdminLayout from '@/components/SuperAdminLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { fingerprintAPI, studentAPI, BACKEND_URL, withToken } from '@/lib/api';
+import { fingerprintAPI, studentAPI, analysisAPI, reportAPI, BACKEND_URL, withToken } from '@/lib/api';
 import { Student, FingerprintData } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -30,6 +30,12 @@ const ANGLES = [
   { key: 'right', label: 'Right' },
 ];
 
+const PATTERNS = [
+  'UL', 'RL', 'FL',
+  'AS', 'AT', 'AU', 'AR',
+  'WS', 'WT', 'WE', 'WD', 'WP', 'WI', 'WL', 'WC', 'WX',
+];
+
 export default function SAFingerprintPage() {
   const { user, loading } = useAuth('SUPER_ADMIN');
   const params = useParams();
@@ -39,9 +45,19 @@ export default function SAFingerprintPage() {
   const [fingerprints, setFingerprints] = useState<Record<string, FingerprintData>>({});
   const [scannerStatus, setScannerStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
 
+  // Analysis state — pattern + ridge count per finger
+  const [analysis, setAnalysis] = useState<Record<string, { pattern: string; ridgeCount: string }>>({});
+  const [savingAnalysis, setSavingAnalysis] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [reportData, setReportData] = useState<any>(null);
+
   // Modal state
   const [scanModal, setScanModal] = useState<{ position: string; angle: string; label: string } | null>(null);
   const [viewModal, setViewModal] = useState<{ label: string; imgUrl: string } | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -50,12 +66,20 @@ export default function SAFingerprintPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [studentRes, fpRes] = await Promise.all([
+      const [studentRes, fpRes, analysisRes] = await Promise.all([
         studentAPI.get(studentId),
         fingerprintAPI.getAll(studentId),
+        analysisAPI.get(studentId),
       ]);
       if (studentRes.data.success) setStudent(studentRes.data.data);
       if (fpRes.data.success) setFingerprints(fpRes.data.data);
+      if (analysisRes.data.success && analysisRes.data.data) {
+        const loaded: Record<string, { pattern: string; ridgeCount: string }> = {};
+        for (const [pos, val] of Object.entries(analysisRes.data.data as Record<string, { pattern: string; ridgeCount: number }>)) {
+          loaded[pos] = { pattern: val.pattern, ridgeCount: String(val.ridgeCount) };
+        }
+        setAnalysis(loaded);
+      }
     } catch {
       toast.error('Failed to load data');
     }
@@ -187,8 +211,29 @@ export default function SAFingerprintPage() {
     e.target.value = '';
   };
 
-  const handleDownload = () => {
-    window.open(`${BACKEND_URL}/api/fingerprints/download/${studentId}`, '_blank');
+  const handleDownload = async () => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const res = await fetch(`${BACKEND_URL}/api/fingerprints/download/${studentId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        toast.error('Failed to download fingerprints');
+        return;
+      }
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${student?.name || 'Student'}_fingerprints.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      toast.success('Fingerprints downloaded!');
+    } catch {
+      toast.error('Failed to download fingerprints');
+    }
   };
 
   const initScanner = async () => {
@@ -203,6 +248,100 @@ export default function SAFingerprintPage() {
       }
     } catch {
       toast.error('Cannot connect to scanner service');
+    }
+  };
+
+  // ── Analysis helpers ─────────────────────────────────────────
+  const updateAnalysis = (fingerPos: string, field: 'pattern' | 'ridgeCount', value: string) => {
+    setAnalysis(prev => {
+      const current = prev[fingerPos] || { pattern: '', ridgeCount: '' };
+      const updated = { ...current, [field]: value };
+      // If pattern starts with 'A', force RC to 0
+      if (field === 'pattern' && value.startsWith('A')) {
+        updated.ridgeCount = '0';
+      }
+      return { ...prev, [fingerPos]: updated };
+    });
+  };
+
+  const isAPattern = (fingerPos: string) => {
+    const p = analysis[fingerPos]?.pattern || '';
+    return p.startsWith('A');
+  };
+
+  const allFingersFilled = FINGERS.every(f => {
+    const a = analysis[f.id];
+    return a && a.pattern && a.ridgeCount !== '' && a.ridgeCount !== undefined;
+  });
+
+  const saveAnalysisData = async () => {
+    setSavingAnalysis(true);
+    try {
+      const payload: Record<string, { pattern: string; ridgeCount: number }> = {};
+      for (const f of FINGERS) {
+        const a = analysis[f.id];
+        if (a?.pattern && a?.ridgeCount !== '') {
+          payload[f.id] = { pattern: a.pattern, ridgeCount: Number(a.ridgeCount) };
+        }
+      }
+      const res = await analysisAPI.save(studentId, payload);
+      if (res.data.success) {
+        toast.success(res.data.message || 'Analysis saved');
+      }
+    } catch {
+      toast.error('Failed to save analysis');
+    } finally {
+      setSavingAnalysis(false);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    if (!allFingersFilled) {
+      toast.error('Please fill Pattern and RC for all 10 fingers before generating the report');
+      return;
+    }
+    await saveAnalysisData();
+    setGeneratingReport(true);
+    try {
+      const calcRes = await reportAPI.calculate(studentId);
+      if (!calcRes.data.success) {
+        toast.error(calcRes.data.message || 'Calculation failed');
+        return;
+      }
+      setReportData(calcRes.data.data);
+    } catch {
+      toast.error('Failed to generate report');
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
+  const handlePrintReport = async () => {
+    setDownloadingPdf(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const url = reportAPI.generateUrl(studentId);
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        toast.error('Failed to generate PDF');
+        return;
+      }
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `Brainography_Report_${student?.name || 'Student'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      toast.success('Report PDF downloaded!');
+    } catch {
+      toast.error('Failed to download PDF');
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -249,6 +388,14 @@ export default function SAFingerprintPage() {
                 className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors">
                 Download All
               </button>
+              <button onClick={saveAnalysisData} disabled={savingAnalysis}
+                className="px-3 py-1.5 bg-gray-600 text-white rounded-lg text-sm hover:bg-gray-700 disabled:opacity-50 transition-colors">
+                {savingAnalysis ? 'Saving...' : 'Save Analysis'}
+              </button>
+              <button onClick={handleGenerateReport} disabled={!allFingersFilled || generatingReport}
+                className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                {generatingReport ? 'Generating...' : 'Generate Report'}
+              </button>
             </div>
           </div>
 
@@ -266,7 +413,42 @@ export default function SAFingerprintPage() {
                 <tbody className="divide-y divide-gray-100">
                   {FINGERS.map((finger) => (
                     <tr key={finger.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{finger.label}</td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-medium text-gray-900 mb-2">{finger.label}</div>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={analysis[finger.id]?.pattern || ''}
+                            onChange={(e) => updateAnalysis(finger.id, 'pattern', e.target.value)}
+                            className={`w-24 px-2 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${
+                              analysis[finger.id]?.pattern ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-white'
+                            }`}
+                          >
+                            <option value="">Pattern</option>
+                            {PATTERNS.map((p) => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            min={0}
+                            max={24}
+                            value={analysis[finger.id]?.ridgeCount ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === '' || (Number(v) >= 0 && Number(v) <= 24)) {
+                                updateAnalysis(finger.id, 'ridgeCount', v);
+                              }
+                            }}
+                            disabled={isAPattern(finger.id)}
+                            placeholder="RC"
+                            className={`w-16 px-2 py-1.5 border rounded-lg text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${
+                              isAPattern(finger.id) ? 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed' :
+                              analysis[finger.id]?.ridgeCount !== '' && analysis[finger.id]?.ridgeCount !== undefined
+                                ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-white'
+                            }`}
+                          />
+                        </div>
+                      </td>
                       {ANGLES.map((angle) => {
                         const key = `${finger.id}_${angle.key}`;
                         const fp = fingerprints[key];
@@ -313,20 +495,29 @@ export default function SAFingerprintPage() {
           </div>
         </div>
 
-        {/* View Modal */}
+        {/* View Modal with Zoom */}
         {viewModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setViewModal(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => { setViewModal(null); setZoomLevel(1); }}>
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900">{viewModal.label}</h3>
-                <button onClick={() => setViewModal(null)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.25))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 text-lg font-bold">-</button>
+                  <span className="text-sm text-gray-500 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
+                  <button onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 text-lg font-bold">+</button>
+                  <button onClick={() => setZoomLevel(1)}
+                    className="px-2 py-1 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100">Reset</button>
+                  <button onClick={() => { setViewModal(null); setZoomLevel(1); }} className="text-gray-400 hover:text-gray-600 ml-2">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" style={{ minHeight: '320px' }}>
-                <img src={viewModal.imgUrl} alt={viewModal.label} className="max-w-full max-h-[400px] object-contain" />
+              <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 overflow-auto" style={{ minHeight: '320px', maxHeight: '70vh' }}>
+                <img src={viewModal.imgUrl} alt={viewModal.label} className="transition-transform duration-200" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }} />
               </div>
             </div>
           </div>
@@ -398,6 +589,223 @@ export default function SAFingerprintPage() {
                     </button>
                   </>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* On-Screen Report Modal */}
+        {reportData && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl mx-4 max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900">Brainography Report — {student?.name}</h2>
+                <div className="flex items-center gap-3">
+                  <button onClick={handlePrintReport} disabled={downloadingPdf}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors">
+                    {downloadingPdf ? 'Downloading...' : 'Print Report (PDF)'}
+                  </button>
+                  <button onClick={() => setReportData(null)} className="text-gray-400 hover:text-gray-600">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="overflow-y-auto p-6 space-y-6">
+                {/* RC & Percentage Table */}
+                <section>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Fingerprint Analysis</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Finger</th>
+                          <th className="px-3 py-2 text-center font-semibold text-gray-600">RC</th>
+                          <th className="px-3 py-2 text-center font-semibold text-gray-600">Percentage</th>
+                          <th className="px-3 py-2 text-center font-semibold text-gray-600">Strength</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {FINGERS.map(f => {
+                          const rc = reportData.rcValues?.[f.id] ?? 0;
+                          const pct = reportData.percentagesDisplay?.[f.id];
+                          const pctStr = pct === 'X' ? 'X' : `${pct}%`;
+                          const strength = pct === 'X' ? 'Open' : pct >= 9 ? 'Strong' : pct >= 8 ? 'Average' : 'Weak';
+                          const strengthColor = pct === 'X' ? 'text-gray-500' : pct >= 9 ? 'text-green-600' : pct >= 8 ? 'text-yellow-600' : 'text-red-600';
+                          return (
+                            <tr key={f.id}>
+                              <td className="px-3 py-2 font-medium text-gray-900">{f.label}</td>
+                              <td className="px-3 py-2 text-center">{rc}</td>
+                              <td className="px-3 py-2 text-center font-semibold">{pctStr}</td>
+                              <td className={`px-3 py-2 text-center font-medium ${strengthColor}`}>{strength}</td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="bg-gray-50 font-bold">
+                          <td className="px-3 py-2">Total</td>
+                          <td className="px-3 py-2 text-center">{reportData.totalRc}</td>
+                          <td className="px-3 py-2 text-center">100%</td>
+                          <td className="px-3 py-2"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                {/* Brain Analysis */}
+                <section>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Thinking Ability</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                      <p className="text-sm font-medium text-blue-600 mb-1">Logic (Left Brain)</p>
+                      <p className="text-2xl font-bold text-blue-800">{reportData.leftBrainResult}</p>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center">
+                      <p className="text-sm font-medium text-purple-600 mb-1">Emotional (Right Brain)</p>
+                      <p className="text-2xl font-bold text-purple-800">{reportData.rightBrainResult}</p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Achievement Styles */}
+                <section>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Achievement Styles</h3>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[
+                      { key: 'follower', label: 'Follower', color: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+                      { key: 'experimental', label: 'Experimental', color: 'bg-orange-50 border-orange-200 text-orange-800' },
+                      { key: 'different', label: 'Different', color: 'bg-cyan-50 border-cyan-200 text-cyan-800' },
+                      { key: 'thoughtful', label: 'Thoughtful', color: 'bg-rose-50 border-rose-200 text-rose-800' },
+                    ].map(s => (
+                      <div key={s.key} className={`${s.color} border rounded-xl p-4 text-center`}>
+                        <p className="text-sm font-medium mb-1">{s.label}</p>
+                        <p className="text-2xl font-bold">{reportData.achievementStyles?.[s.key] || '0%'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Learning & Communication Style */}
+                <section>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Learning & Communication Style</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { key: 'kinResult', label: 'Kinesthetic', color: 'bg-amber-50 border-amber-200 text-amber-800' },
+                      { key: 'audResult', label: 'Auditory', color: 'bg-indigo-50 border-indigo-200 text-indigo-800' },
+                      { key: 'visResult', label: 'Visual', color: 'bg-teal-50 border-teal-200 text-teal-800' },
+                    ].map(s => (
+                      <div key={s.key} className={`${s.color} border rounded-xl p-4 text-center`}>
+                        <p className="text-sm font-medium mb-1">{s.label}</p>
+                        <p className="text-2xl font-bold">{reportData[s.key] || '0'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Work Ability Style */}
+                <section>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Work Ability Style</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Ability</th>
+                          <th className="px-3 py-2 text-center font-semibold text-gray-600">Result</th>
+                          <th className="px-3 py-2 text-center font-semibold text-gray-600">Description</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {[
+                          { key: 'iq', label: 'IQ (Intelligence)' },
+                          { key: 'eq', label: 'EQ (Emotional)' },
+                          { key: 'cq', label: 'CQ (Creativity)' },
+                          { key: 'vq', label: 'VQ (Visionary)' },
+                          { key: 'aq', label: 'AQ (Adversity)' },
+                        ].map(q => {
+                          const val = reportData.workAbilityResults?.[q.key] || '';
+                          const numVal = parseFloat(val);
+                          const desc = val.includes('X') ? 'Open' : isNaN(numVal) ? '-' : numVal >= 20 ? 'Strong' : numVal > 18 ? 'Above Average' : numVal >= 16 ? 'Average' : 'Developing';
+                          const descColor = desc === 'Strong' ? 'text-green-600' : desc === 'Above Average' ? 'text-blue-600' : desc === 'Average' ? 'text-yellow-600' : desc === 'Open' ? 'text-gray-500' : 'text-red-600';
+                          return (
+                            <tr key={q.key}>
+                              <td className="px-3 py-2 font-medium text-gray-900">{q.label}</td>
+                              <td className="px-3 py-2 text-center font-semibold">{val}</td>
+                              <td className={`px-3 py-2 text-center font-medium ${descColor}`}>{desc}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                {/* Personality Features */}
+                <section>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Personality Type</h3>
+                  {reportData.personalityFeatures && Object.keys(reportData.personalityFeatures).length > 0 ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      {Object.entries(reportData.personalityFeatures as Record<string, Record<string, boolean>>).map(([type, features]) => (
+                        <div key={type} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                          <p className="font-bold text-gray-800 mb-2">{type}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(features).filter(([, v]) => v).map(([feat]) => (
+                              <span key={feat} className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">{feat}</span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No personality features matched.</p>
+                  )}
+                </section>
+
+                {/* Career Recommendations */}
+                <section>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Career Recommendations</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="border border-green-200 bg-green-50 rounded-xl p-4">
+                      <p className="font-bold text-green-800 mb-2">Highly Recommended</p>
+                      {reportData.careerRecommendations?.highly_recommended?.length > 0 ? (
+                        <ul className="space-y-1">
+                          {reportData.careerRecommendations.highly_recommended.map((c: string, i: number) => (
+                            <li key={i} className="text-sm text-green-900 flex items-start gap-1.5">
+                              <span className="text-green-500 mt-0.5">&#8226;</span>{c}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="text-sm text-gray-500">None</p>}
+                    </div>
+                    <div className="border border-blue-200 bg-blue-50 rounded-xl p-4">
+                      <p className="font-bold text-blue-800 mb-2">Recommended</p>
+                      {reportData.careerRecommendations?.recommended?.length > 0 ? (
+                        <ul className="space-y-1">
+                          {reportData.careerRecommendations.recommended.map((c: string, i: number) => (
+                            <li key={i} className="text-sm text-blue-900 flex items-start gap-1.5">
+                              <span className="text-blue-500 mt-0.5">&#8226;</span>{c}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="text-sm text-gray-500">None</p>}
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              {/* Footer with Print button */}
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                <button onClick={() => setReportData(null)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                  Close
+                </button>
+                <button onClick={handlePrintReport} disabled={downloadingPdf}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors">
+                  {downloadingPdf ? 'Downloading...' : 'Print Report (PDF)'}
+                </button>
               </div>
             </div>
           </div>

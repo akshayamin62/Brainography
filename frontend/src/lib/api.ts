@@ -77,5 +77,16 @@ export const documentAPI = {
   downloadUrl: (docId: string) => `${API_URL}/documents/download/${docId}`,
 };
 
+export const analysisAPI = {
+  get: (studentId: string) => api.get(`/fingerprint-analysis/${studentId}`),
+  save: (studentId: string, data: Record<string, { pattern: string; ridgeCount: number }>) =>
+    api.post(`/fingerprint-analysis/${studentId}`, { data }),
+};
+
+export const reportAPI = {
+  calculate: (studentId: string) => api.post(`/reports/calculate/${studentId}`),
+  generateUrl: (studentId: string) => `${API_URL}/reports/generate/${studentId}`,
+};
+
 export default api;
 

@@ -42,6 +42,7 @@ export default function FingerprintScanPage() {
   // Modal state
   const [scanModal, setScanModal] = useState<{ position: string; angle: string; label: string } | null>(null);
   const [viewModal, setViewModal] = useState<{ label: string; imgUrl: string } | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -188,8 +189,29 @@ export default function FingerprintScanPage() {
     e.target.value = '';
   };
 
-  const handleDownload = () => {
-    window.open(`${BACKEND_URL}/api/fingerprints/download/${studentId}`, '_blank');
+  const handleDownload = async () => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const res = await fetch(`${BACKEND_URL}/api/fingerprints/download/${studentId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        toast.error('Failed to download fingerprints');
+        return;
+      }
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${student?.name || 'Student'}_fingerprints.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      toast.success('Fingerprints downloaded!');
+    } catch {
+      toast.error('Failed to download fingerprints');
+    }
   };
 
   const initScanner = async () => {
@@ -314,20 +336,29 @@ export default function FingerprintScanPage() {
           </div>
         </div>
 
-        {/* View Modal */}
+        {/* View Modal with Zoom */}
         {viewModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setViewModal(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => { setViewModal(null); setZoomLevel(1); }}>
             <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900">{viewModal.label}</h3>
-                <button onClick={() => setViewModal(null)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setZoomLevel(z => Math.max(0.5, z - 0.25))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 text-lg font-bold">-</button>
+                  <span className="text-sm text-gray-500 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
+                  <button onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 text-lg font-bold">+</button>
+                  <button onClick={() => setZoomLevel(1)}
+                    className="px-2 py-1 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100">Reset</button>
+                  <button onClick={() => { setViewModal(null); setZoomLevel(1); }} className="text-gray-400 hover:text-gray-600 ml-2">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" style={{ minHeight: '320px' }}>
-                <img src={viewModal.imgUrl} alt={viewModal.label} className="max-w-full max-h-[400px] object-contain" />
+              <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 overflow-auto" style={{ minHeight: '320px', maxHeight: '70vh' }}>
+                <img src={viewModal.imgUrl} alt={viewModal.label} className="transition-transform duration-200" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }} />
               </div>
             </div>
           </div>

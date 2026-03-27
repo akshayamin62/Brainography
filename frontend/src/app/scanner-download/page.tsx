@@ -13,7 +13,7 @@ function detectOS(): OS {
 }
 
 const WINDOWS_FILE = '/downloads/BrainographyScanner_Setup.exe';
-const MAC_FILE = '/downloads/BrainographyScanner.pkg';
+const MAC_FILE = '/downloads/BrainographyScanner.dmg';
 
 export default function ScannerDownloadPage() {
   const [os, setOS] = useState<OS>(null);
@@ -62,10 +62,10 @@ export default function ScannerDownloadPage() {
       { n: 5, text: 'Plug in your Futronic USB scanner — you\'re done!' },
     ],
     mac: [
-      { n: 1, text: 'Double-click BrainographyScanner.pkg' },
-      { n: 2, text: 'Click "Continue" then "Install"' },
-      { n: 3, text: 'Enter your Mac password when prompted (required to auto-start on boot)' },
-      { n: 4, text: 'Click "Close" — the service starts silently in the background' },
+      { n: 1, text: 'Open BrainographyScanner.dmg' },
+      { n: 2, text: 'Double-click Install.command inside the DMG' },
+      { n: 3, text: 'Enter your Mac password when prompted' },
+      { n: 4, text: 'The service starts silently in the background' },
       { n: 5, text: 'Plug in your Futronic USB scanner — you\'re done!' },
     ],
   };

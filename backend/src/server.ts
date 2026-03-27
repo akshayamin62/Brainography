@@ -11,11 +11,14 @@ import adminRoutes from "./routes/adminRoutes";
 import studentRoutes from "./routes/studentRoutes";
 import fingerprintRoutes from "./routes/fingerprintRoutes";
 import documentRoutes from "./routes/documentRoutes";
+import analysisRoutes from "./routes/analysisRoutes";
+import reportRoutes from "./routes/reportRoutes";
 
 // Import models to register them with Mongoose
 import "./models/User";
 import "./models/Student";
 import "./models/Fingerprint";
+import "./models/FingerprintAnalysis";
 import "./models/StudentDocument";
 import "./models/AdminDetail";
 
@@ -60,6 +63,8 @@ app.use("/api/admins", adminRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/fingerprints", fingerprintRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/fingerprint-analysis", analysisRoutes);
+app.use("/api/reports", reportRoutes);
 
 // Basic test route
 app.get('/', (_req, res) => {
