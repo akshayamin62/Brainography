@@ -35,6 +35,7 @@ export default function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('tokenExpiry');
     setIsLoggedIn(false);
     setMobileMenuOpen(false);
     router.push('/login');
@@ -51,15 +52,12 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white sticky top-0 z-50 shadow-lg border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 animate-fade-in">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-25 animate-fade-in">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center pl-20">
             <Link href="/" className="flex items-center group">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md">
-                B
-              </div>
-              <span className="ml-2 text-xl font-bold text-gray-900 hidden sm:block">Brainography</span>
+              <img src="/logo.png" alt="Logo" className="h-20 w-auto object-contain" />
             </Link>
           </div>
 

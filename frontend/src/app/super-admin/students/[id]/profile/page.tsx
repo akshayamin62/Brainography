@@ -285,7 +285,7 @@ export default function SuperAdminStudentProfilePage() {
                       <select value={fCountryCode} onChange={e => setFCountryCode(e.target.value)} className="w-28 px-2 py-2 border border-gray-300 rounded-lg text-sm text-gray-900">
                         {phoneCodes.map(pc => <option key={pc.isoCode} value={pc.code}>{pc.code} ({pc.name})</option>)}
                       </select>
-                      <input type="text" value={fMobile} onChange={e => setFMobile(e.target.value)} className={inputCls + " flex-1"} required />
+                      <input type="tel" value={fMobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setFMobile(v); }} maxLength={10} pattern="[0-9]{10}" placeholder="10 digit number" className={inputCls + " flex-1"} required />
                     </div>
                   </div>
                   <div>

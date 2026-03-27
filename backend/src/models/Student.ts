@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IStudent extends Document {
   adminId: mongoose.Types.ObjectId;
+  reportNo: string;
   // Personal
   firstName: string;
   middleName?: string;
@@ -49,6 +50,7 @@ const studentSchema = new Schema<IStudent>(
       ref: "User",
       required: true,
     },
+    reportNo: { type: String, unique: true, required: true },
     // Personal
     firstName: { type: String, required: true },
     middleName: { type: String, default: "" },

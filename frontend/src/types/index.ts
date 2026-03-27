@@ -35,6 +35,7 @@ export interface User {
 export interface Student {
   _id: string;
   adminId: User | string;
+  reportNo?: string;
   // Personal
   firstName: string;
   middleName?: string;

@@ -36,6 +36,19 @@ const PATTERNS = [
   'WS', 'WT', 'WE', 'WD', 'WP', 'WI', 'WL', 'WC', 'WX',
 ];
 
+const FINGER_ALT_NAMES: Record<string, string> = {
+  'L1': 'Strategy',
+  'L2': 'Intellect',
+  'L3': 'Balance',
+  'L4': 'Expression',
+  'L5': 'Observation',
+  'R1': 'Execution',
+  'R2': 'Aesthetic',
+  'R3': 'Movement',
+  'R4': 'Articulation',
+  'R5': 'Ecological',
+};
+
 export default function SAFingerprintPage() {
   const { user, loading } = useAuth('SUPER_ADMIN');
   const params = useParams();
@@ -624,6 +637,7 @@ export default function SAFingerprintPage() {
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-3 py-2 text-left font-semibold text-gray-600">Finger</th>
+                          <th className="px-3 py-2 text-center font-semibold text-gray-600">Pattern</th>
                           <th className="px-3 py-2 text-center font-semibold text-gray-600">RC</th>
                           <th className="px-3 py-2 text-center font-semibold text-gray-600">Percentage</th>
                           <th className="px-3 py-2 text-center font-semibold text-gray-600">Strength</th>
@@ -638,7 +652,8 @@ export default function SAFingerprintPage() {
                           const strengthColor = pct === 'X' ? 'text-gray-500' : pct >= 9 ? 'text-green-600' : pct >= 8 ? 'text-yellow-600' : 'text-red-600';
                           return (
                             <tr key={f.id}>
-                              <td className="px-3 py-2 font-medium text-gray-900">{f.label}</td>
+                              <td className="px-3 py-2 font-medium text-gray-900">{FINGER_ALT_NAMES[f.id] || f.label}</td>
+                              <td className="px-3 py-2 text-center font-mono text-sm">{reportData.patterns?.[f.id] || analysis[f.id]?.pattern || '-'}</td>
                               <td className="px-3 py-2 text-center">{rc}</td>
                               <td className="px-3 py-2 text-center font-semibold">{pctStr}</td>
                               <td className={`px-3 py-2 text-center font-medium ${strengthColor}`}>{strength}</td>
@@ -647,6 +662,7 @@ export default function SAFingerprintPage() {
                         })}
                         <tr className="bg-gray-50 font-bold">
                           <td className="px-3 py-2">Total</td>
+                          <td className="px-3 py-2"></td>
                           <td className="px-3 py-2 text-center">{reportData.totalRc}</td>
                           <td className="px-3 py-2 text-center">100%</td>
                           <td className="px-3 py-2"></td>

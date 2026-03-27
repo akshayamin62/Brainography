@@ -23,6 +23,7 @@ export interface AnalysisInput {
 export interface CalculationResult {
   rcValues: RcValues;
   totalRc: number;
+  patterns: Record<string, string>;
   percentages: Percentages;
   percentagesDisplay: PercentagesDisplay;
   leftBrainResult: string;
@@ -534,6 +535,7 @@ export function runCalculations(input: AnalysisInput): CalculationResult {
   return {
     rcValues,
     totalRc,
+    patterns: input.patterns,
     percentages,
     percentagesDisplay,
     leftBrainResult,

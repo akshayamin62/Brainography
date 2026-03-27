@@ -49,6 +49,7 @@ export default function SuperAdminLayout({ children, user }: SuperAdminLayoutPro
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('tokenExpiry');
     router.push('/login');
   };
 
@@ -60,9 +61,6 @@ export default function SuperAdminLayout({ children, user }: SuperAdminLayoutPro
         <div className="h-14 border-b border-gray-200 flex items-center justify-between px-4">
           {sidebarOpen && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">SA</span>
-              </div>
               <span className="font-semibold text-gray-900">Super Admin</span>
             </div>
           )}

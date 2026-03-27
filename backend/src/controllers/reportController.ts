@@ -107,7 +107,7 @@ export const generatePdfReport = async (
       institute: student.institutionName || student.university || "",
       contact: `${student.countryCode || ""}${student.mobile || ""}`,
       email: student.email || "",
-      analysisNo: "",
+      analysisNo: student.reportNo || "",
       centerName,
       createdOn,
     };

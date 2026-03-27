@@ -18,6 +18,17 @@ export function useAuth(requiredRole?: string) {
           router.replace('/login');
           return;
         }
+
+        // Check if token has expired on the client side (7-day session)
+        const expiry = localStorage.getItem('tokenExpiry');
+        if (expiry && Date.now() > Number(expiry)) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('tokenExpiry');
+          router.replace('/login');
+          return;
+        }
+
         const response = await authAPI.getProfile();
         const userData = response.data.data.user;
 
@@ -33,6 +44,7 @@ export function useAuth(requiredRole?: string) {
       } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('tokenExpiry');
         router.replace('/login');
       } finally {
         setLoading(false);

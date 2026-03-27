@@ -98,22 +98,54 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
 
     const name = [firstName, middleName, lastName].filter(Boolean).join(" ");
 
-    const student = new Student({
-      adminId: assignedAdminId,
-      firstName, middleName: middleName || "", lastName,
-      dob, gender, countryCode: countryCode || "+91", mobile, email,
-      educationLevel, board: board || "", boardFullName: boardFullName || "",
-      institutionName, institutionCountry, fieldOfStudy: fieldOfStudy || "", mediumOfTeaching,
-      address, country, state, city,
-      siblings: siblings ?? 0, familyStructure, motherActivity, fatherActivity,
-      hobbies: hobbies || "", games, otherGames: otherGames || "",
-      standard: standard || "",
-      name,
-    });
+    // Atomically generate a unique report number.
+    // The unique index on reportNo acts as the concurrency guard:
+    // if two requests race and pick the same number, the second save
+    // will throw a duplicate-key error (code 11000) and we retry.
+    const PREFIX = "KS";
+    const START_NUM = 2100;
+    let populated = null;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const lastStudent = await Student.findOne(
+        { reportNo: { $exists: true } },
+        { reportNo: 1 }
+      ).sort({ reportNo: -1 });
+      let nextNum = START_NUM;
+      if (lastStudent?.reportNo) {
+        const numPart = parseInt(lastStudent.reportNo.replace(PREFIX, ""), 10);
+        if (!isNaN(numPart) && numPart >= START_NUM) nextNum = numPart + 1;
+      }
+      const reportNo = `${PREFIX}${String(nextNum).padStart(6, "0")}`;
 
-    await student.save();
+      const student = new Student({
+        adminId: assignedAdminId,
+        reportNo,
+        firstName, middleName: middleName || "", lastName,
+        dob, gender, countryCode: countryCode || "+91", mobile, email,
+        educationLevel, board: board || "", boardFullName: boardFullName || "",
+        institutionName, institutionCountry, fieldOfStudy: fieldOfStudy || "", mediumOfTeaching,
+        address, country, state, city,
+        siblings: siblings ?? 0, familyStructure, motherActivity, fatherActivity,
+        hobbies: hobbies || "", games, otherGames: otherGames || "",
+        standard: standard || "",
+        name,
+      });
 
-    const populated = await Student.findById(student._id).populate("adminId", "name email");
+      try {
+        await student.save();
+        populated = await Student.findById(student._id).populate("adminId", "name email");
+        break; // success — exit retry loop
+      } catch (saveErr: any) {
+        if (saveErr.code === 11000 && saveErr.keyPattern?.reportNo) {
+          continue; // another concurrent request grabbed this number — retry
+        }
+        throw saveErr; // unrelated error — propagate
+      }
+    }
+
+    if (!populated) {
+      return res.status(500).json({ success: false, message: "Failed to assign a unique report number. Please try again." });
+    }
 
     return res.status(201).json({
       success: true,

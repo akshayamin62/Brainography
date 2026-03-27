@@ -248,8 +248,8 @@ export default function AdminsPage() {
         </div>
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">Mobile *</label>
-          <input type="text" value={fMobile} onChange={(e) => setFMobile(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" required />
+          <input type="tel" value={fMobile} onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setFMobile(v); }} maxLength={10} pattern="[0-9]{10}"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900" required placeholder="10 digit number" />
         </div>
       </div>
       <div>

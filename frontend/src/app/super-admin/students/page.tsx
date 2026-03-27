@@ -288,6 +288,7 @@ export default function SuperAdminStudentsPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Report No.</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('name')}>Name<SortIcon field="name" /></th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('email')}>Email<SortIcon field="email" /></th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Mobile</th>
@@ -298,11 +299,12 @@ export default function SuperAdminStudentsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No students found</td></tr>
+                    <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No students found</td></tr>
                   ) : (
                     filtered.map((student, idx) => (
                       <tr key={student._id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-blue-700">{student.reportNo || '-'}</td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">{student.name}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{student.email}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{student.countryCode ? `${student.countryCode} ` : ''}{student.mobile}</td>
@@ -402,7 +404,7 @@ export default function SuperAdminStudentsPage() {
                       {phoneCodes.map(pc => <option key={pc.isoCode} value={pc.code}>{pc.code} ({pc.name})</option>)}
                     </select>
                   </div>
-                  <div><label className={labelCls}>Mobile *</label><input type="tel" value={fMobile} onChange={e => setFMobile(e.target.value)} className={inputCls} required /></div>
+                  <div><label className={labelCls}>Mobile *</label><input type="tel" value={fMobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setFMobile(v); }} maxLength={10} pattern="[0-9]{10}" className={inputCls} required placeholder="10 digit number" /></div>
                   <div><label className={labelCls}>Email *</label><input type="email" value={fEmail} onChange={e => setFEmail(e.target.value)} className={inputCls} required /></div>
                 </div>
 
@@ -443,7 +445,7 @@ export default function SuperAdminStudentsPage() {
                   </div>
                 </div>
                 {showFieldOfStudy && (
-                  <div><label className={labelCls}>Field of Study *</label><input type="text" value={fFieldOfStudy} onChange={e => setFFieldOfStudy(e.target.value)} className={inputCls} required /></div>
+                  <div><label className={labelCls}>Field of Study *</label><input type="text" value={fFieldOfStudy} onChange={e => setFFieldOfStudy(e.target.value)} className={inputCls} placeholder={fEducationLevel === 'higher_secondary_school' ? 'e.g. PCB, PCM, Commerce, Arts' : fEducationLevel === 'bachelors' ? 'e.g. BBA, B.Tech, B.Sc, B.Com' : fEducationLevel === 'masters' ? 'e.g. MBA, M.Tech, M.Sc, M.Com' : fEducationLevel === 'doctorate' ? 'e.g. Ph.D, D.Sc, M.D' : fEducationLevel === 'associate' ? 'e.g. Diploma, Polytechnic' : 'Enter field of study'} required /></div>
                 )}
                 <div>
                   <label className={labelCls}>Medium of Teaching *</label>
