@@ -54,9 +54,9 @@ export default function SuperAdminLayout({ children, user }: SuperAdminLayoutPro
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] bg-gray-50">
+    <div className="flex h-[calc(100vh-6.25rem)] overflow-hidden bg-gray-50">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col sticky top-16 h-[calc(100vh-4rem)]`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col flex-shrink-0 overflow-y-auto`}>
         {/* Header */}
         <div className="h-14 border-b border-gray-200 flex items-center justify-between px-4">
           {sidebarOpen && (
@@ -127,7 +127,7 @@ export default function SuperAdminLayout({ children, user }: SuperAdminLayoutPro
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto h-full">{children}</main>
     </div>
   );
 }

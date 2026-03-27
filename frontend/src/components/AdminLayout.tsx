@@ -45,8 +45,8 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] bg-gray-50">
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col sticky top-16 h-[calc(100vh-4rem)]`}>
+    <div className="flex h-[calc(100vh-6.25rem)] overflow-hidden bg-gray-50">
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col flex-shrink-0 overflow-y-auto`}>
         <div className="h-14 border-b border-gray-200 flex items-center justify-between px-4">
           {sidebarOpen && (
             <div className="flex items-center gap-2">
@@ -112,7 +112,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto h-full">{children}</main>
     </div>
   );
 }
