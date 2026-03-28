@@ -12,16 +12,16 @@ import toast, { Toaster } from 'react-hot-toast';
 const SCANNER_URL = 'http://localhost:8585';
 
 const FINGERS = [
-  { id: 'L1', label: 'Left Thumb' },
-  { id: 'L2', label: 'Left Index' },
-  { id: 'L3', label: 'Left Middle' },
-  { id: 'L4', label: 'Left Ring' },
-  { id: 'L5', label: 'Left Little' },
   { id: 'R1', label: 'Right Thumb' },
   { id: 'R2', label: 'Right Index' },
   { id: 'R3', label: 'Right Middle' },
   { id: 'R4', label: 'Right Ring' },
   { id: 'R5', label: 'Right Little' },
+  { id: 'L1', label: 'Left Thumb' },
+  { id: 'L2', label: 'Left Index' },
+  { id: 'L3', label: 'Left Middle' },
+  { id: 'L4', label: 'Left Ring' },
+  { id: 'L5', label: 'Left Little' },
 ];
 
 const ANGLES = [

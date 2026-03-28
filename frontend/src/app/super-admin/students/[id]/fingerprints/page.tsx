@@ -12,16 +12,16 @@ import toast, { Toaster } from 'react-hot-toast';
 const SCANNER_URL = 'http://localhost:8585';
 
 const FINGERS = [
-  { id: 'L1', label: 'Left Thumb' },
-  { id: 'L2', label: 'Left Index' },
-  { id: 'L3', label: 'Left Middle' },
-  { id: 'L4', label: 'Left Ring' },
-  { id: 'L5', label: 'Left Little' },
   { id: 'R1', label: 'Right Thumb' },
   { id: 'R2', label: 'Right Index' },
   { id: 'R3', label: 'Right Middle' },
   { id: 'R4', label: 'Right Ring' },
   { id: 'R5', label: 'Right Little' },
+  { id: 'L1', label: 'Left Thumb' },
+  { id: 'L2', label: 'Left Index' },
+  { id: 'L3', label: 'Left Middle' },
+  { id: 'L4', label: 'Left Ring' },
+  { id: 'L5', label: 'Left Little' },
 ];
 
 const ANGLES = [
@@ -766,10 +766,17 @@ export default function SAFingerprintPage() {
                     <div className="grid grid-cols-2 gap-4">
                       {Object.entries(reportData.personalityFeatures as Record<string, Record<string, boolean>>).map(([type, features]) => (
                         <div key={type} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                          <p className="font-bold text-gray-800 mb-2">{type}</p>
-                          <div className="flex flex-wrap gap-2">
+                          <p className="font-bold text-gray-800 mb-3 text-base">{type}</p>
+                          <div className="flex flex-col gap-2">
                             {Object.entries(features).filter(([, v]) => v).map(([feat]) => (
-                              <span key={feat} className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">{feat}</span>
+                              <div key={feat} className="flex items-center gap-2">
+                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                                <span className="text-sm font-medium text-gray-800">{feat}</span>
+                              </div>
                             ))}
                           </div>
                         </div>
