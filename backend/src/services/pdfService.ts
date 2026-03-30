@@ -156,7 +156,7 @@ export async function generateReport(
   drawCentered(8, 334, 152, pctStr("L5"), 14, 80);
 
   // Total Ridges Count on page 8
-  drawCentered(8, 250, 80, String(calc.totalRc), 16, 80);
+  drawCentered(8, 308, 60, String(calc.totalRc), 14, 80);
 
   // ── PAGE 9 & 10: Thinking Pattern ────────────────────────────
   drawCentered(9, 69, 502, calc.leftBrainResult, 14, 100);
