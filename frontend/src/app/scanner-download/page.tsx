@@ -71,18 +71,17 @@ export default function ScannerDownloadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center justify-center px-4 py-12">
+    <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col items-center px-4 py-10">
 
       {/* Header */}
-      <div className="text-center mb-10">
-        {/* Fingerprint logo */}
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
-          <svg className="w-9 h-9 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl shadow-lg mb-3">
+          <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
             <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4M5 19.5C5.5 18 6 15 6 12c0-3.5 2.5-6 6-6a6 6 0 0 1 5.5 3M8.5 22c.7-2.3 1-4.5 1-7 0-2.2.8-4 3-4.5M14 13c0 2-.5 4-1.5 7" />
           </svg>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Brainography Scanner</h1>
-        <p className="text-gray-500 mt-2 text-base">Connect your Futronic fingerprint scanner to the Brainography platform</p>
+        <h1 className="text-2xl font-bold text-gray-900">Brainography Scanner</h1>
+        <p className="text-gray-500 mt-1 text-sm">Connect your Futronic fingerprint scanner to the Brainography platform</p>
       </div>
 
       {/* Auto-detect banner */}

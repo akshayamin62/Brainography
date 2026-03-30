@@ -37,16 +37,16 @@ const PATTERNS = [
 ];
 
 const FINGER_ALT_NAMES: Record<string, string> = {
-  'L1': 'Strategy',
-  'L2': 'Intellect',
-  'L3': 'Balance',
-  'L4': 'Expression',
-  'L5': 'Observation',
-  'R1': 'Execution',
-  'R2': 'Aesthetic',
-  'R3': 'Movement',
-  'R4': 'Articulation',
-  'R5': 'Ecological',
+  'L1': 'Execution',
+  'L2': 'Aesthetic',
+  'L3': 'Movement',
+  'L4': 'Articulation',
+  'L5': 'Ecological',
+  'R1': 'Strategy',
+  'R2': 'Intellect',
+  'R3': 'Balance',
+  'R4': 'Expression',
+  'R5': 'Observation',
 };
 
 export default function SAFingerprintPage() {
@@ -57,6 +57,7 @@ export default function SAFingerprintPage() {
   const [student, setStudent] = useState<Student | null>(null);
   const [fingerprints, setFingerprints] = useState<Record<string, FingerprintData>>({});
   const [scannerStatus, setScannerStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  const [selectedHand, setSelectedHand] = useState<'right' | 'left'>('right');
 
   // Analysis state — pattern + ridge count per finger
   const [analysis, setAnalysis] = useState<Record<string, { pattern: string; ridgeCount: string }>>({});
@@ -412,99 +413,114 @@ export default function SAFingerprintPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Finger</th>
-                    {ANGLES.map((a) => (
-                      <th key={a.key} className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">{a.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {FINGERS.map((finger) => (
-                    <tr key={finger.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-medium text-gray-900 mb-2">{finger.label}</div>
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={analysis[finger.id]?.pattern || ''}
-                            onChange={(e) => updateAnalysis(finger.id, 'pattern', e.target.value)}
-                            className={`w-24 px-2 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${
-                              analysis[finger.id]?.pattern ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-white'
-                            }`}
+          {/* Hand toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setSelectedHand('right')}
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${selectedHand === 'right' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+            >
+              Right Hand
+            </button>
+            <button
+              onClick={() => setSelectedHand('left')}
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${selectedHand === 'left' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+            >
+              Left Hand
+            </button>
+          </div>
+
+          {/* Finger cards */}
+          <div className="space-y-6">
+            {FINGERS.filter(f => selectedHand === 'right' ? f.id.startsWith('R') : f.id.startsWith('L')).map((finger) => (
+              <div key={finger.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                {/* Card header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                        <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4M5 19.5C5.5 18 6 15 6 12c0-3.5 2.5-6 6-6a6 6 0 0 1 5.5 3M8.5 22c.7-2.3 1-4.5 1-7 0-2.2.8-4 3-4.5M14 13c0 2-.5 4-1.5 7" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">{finger.label}</h3>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {/* Pattern */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pattern</span>
+                      <select
+                        value={analysis[finger.id]?.pattern || ''}
+                        onChange={(e) => updateAnalysis(finger.id, 'pattern', e.target.value)}
+                        className={`w-24 px-2 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${
+                          analysis[finger.id]?.pattern ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-white'
+                        }`}
+                      >
+                        <option value="">--</option>
+                        {PATTERNS.map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Ridges Count */}
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ridges Count</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={24}
+                        value={analysis[finger.id]?.ridgeCount ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === '' || (Number(v) >= 0 && Number(v) <= 24)) {
+                            updateAnalysis(finger.id, 'ridgeCount', v);
+                          }
+                        }}
+                        disabled={isAPattern(finger.id)}
+                        placeholder="0"
+                        className={`w-20 px-2 py-1.5 border rounded-lg text-lg font-bold text-center text-red-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${
+                          isAPattern(finger.id) ? 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed' :
+                          analysis[finger.id]?.ridgeCount !== '' && analysis[finger.id]?.ridgeCount !== undefined
+                            ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-white'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+                {/* Three views */}
+                <div className="grid grid-cols-3 gap-4">
+                  {ANGLES.map((angle) => {
+                    const key = `${finger.id}_${angle.key}`;
+                    const fp = fingerprints[key];
+                    const imgUrl = fp?.fileExists ? withToken(`${BACKEND_URL}/uploads/fingerprints/${fp.filename}`) : null;
+                    return (
+                      <div key={angle.key} className="flex flex-col items-center">
+                        {imgUrl ? (
+                          <button
+                            onClick={() => setViewModal({ label: `${finger.label} - ${angle.label}`, imgUrl })}
+                            className="w-full aspect-[3/4] rounded-xl border-2 border-gray-200 bg-gray-50 hover:border-green-400 transition-all overflow-hidden"
+                            title={`View ${finger.label} ${angle.label}`}
                           >
-                            <option value="">Pattern</option>
-                            {PATTERNS.map((p) => (
-                              <option key={p} value={p}>{p}</option>
-                            ))}
-                          </select>
-                          <input
-                            type="number"
-                            min={0}
-                            max={24}
-                            value={analysis[finger.id]?.ridgeCount ?? ''}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              if (v === '' || (Number(v) >= 0 && Number(v) <= 24)) {
-                                updateAnalysis(finger.id, 'ridgeCount', v);
-                              }
-                            }}
-                            disabled={isAPattern(finger.id)}
-                            placeholder="RC"
-                            className={`w-16 px-2 py-1.5 border rounded-lg text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${
-                              isAPattern(finger.id) ? 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed' :
-                              analysis[finger.id]?.ridgeCount !== '' && analysis[finger.id]?.ridgeCount !== undefined
-                                ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-white'
-                            }`}
-                          />
-                        </div>
-                      </td>
-                      {ANGLES.map((angle) => {
-                        const key = `${finger.id}_${angle.key}`;
-                        const fp = fingerprints[key];
-                        const imgUrl = fp?.fileExists ? withToken(`${BACKEND_URL}/uploads/fingerprints/${fp.filename}`) : null;
-                        return (
-                          <td key={angle.key} className="px-2 py-1.5 text-center">
-                            <div className="inline-flex flex-col items-center gap-1">
-                              {imgUrl ? (
-                                <button
-                                  onClick={() => setViewModal({ label: `${finger.label} - ${angle.label}`, imgUrl })}
-                                  className="w-60 h-72 rounded-lg border-2 border-green-400 bg-green-50 hover:border-green-500 transition-all inline-flex items-center justify-center overflow-hidden"
-                                  title={`View ${finger.label} ${angle.label}`}
-                                >
-                                  <img src={imgUrl} alt={`${finger.label} ${angle.label}`} className="w-full h-full object-cover" />
-                                </button>
-                              ) : fp ? (
-                                <div className="w-28 h-32 rounded-lg border-2 border-green-400 bg-green-50 inline-flex items-center justify-center">
-                                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                              ) : (
-                                <div className="w-28 h-32 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 inline-flex items-center justify-center">
-                                  <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-                                  </svg>
-                                </div>
-                              )}
-                              <button
-                                onClick={() => openScanModal(finger.id, angle.key, `${finger.label} - ${angle.label}`)}
-                                className="text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline"
-                              >
-                                {fp ? 'Scan Again' : 'Scan'}
-                              </button>
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                            <img src={imgUrl} alt={`${finger.label} ${angle.label}`} className="w-full h-full object-cover" />
+                          </button>
+                        ) : (
+                          <div className="w-full aspect-[3/4] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                            </svg>
+                          </div>
+                        )}
+                        <p className="mt-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">{angle.label} View</p>
+                        <button
+                          onClick={() => openScanModal(finger.id, angle.key, `${finger.label} - ${angle.label}`)}
+                          className="mt-1 text-lg font-medium text-purple-600 hover:text-purple-800 hover:underline"
+                        >
+                          {fp ? 'Scan Again' : 'Scan'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

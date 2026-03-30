@@ -132,63 +132,66 @@ export async function generateReport(
   };
 
   // ── PAGE 3: Personal Details ──────────────────────────────────
-  drawLeft(3, 210, 722, studentData.analysisNo, 14);
-  drawLeft(3, 210, 682, studentData.name, 14);
-  drawLeft(3, 210, 647, studentData.dob, 14);
-  drawLeft(3, 210, 610, studentData.standard, 14);
-  drawLeft(3, 210, 574, studentData.board, 14);
-  drawLeft(3, 210, 538, studentData.institute, 14);
-  drawLeft(3, 210, 501, studentData.contact, 14);
-  drawLeft(3, 210, 464, studentData.email, 14);
-  drawLeft(3, 210, 429, studentData.centerName, 14);
-  drawLeft(3, 210, 386, studentData.createdOn, 14);
+  drawLeft(3, 210, 727, studentData.analysisNo, 14);
+  drawLeft(3, 210, 689, studentData.name, 14);
+  drawLeft(3, 210, 654, studentData.dob, 14);
+  drawLeft(3, 210, 617, studentData.standard, 14);
+  drawLeft(3, 210, 581, studentData.board, 14);
+  drawLeft(3, 210, 545, studentData.institute, 14);
+  drawLeft(3, 210, 508, studentData.contact, 14);
+  drawLeft(3, 210, 471, studentData.email, 14);
+  drawLeft(3, 210, 436, studentData.centerName, 14);
+  drawLeft(3, 210, 393, studentData.createdOn, 14);
 
   // ── PAGE 8: Finger Percentages ────────────────────────────────
-  drawCentered(8, 180, 645, pctStr("R1"), 14, 80);
-  drawCentered(8, 180, 518, pctStr("R2"), 14, 80);
-  drawCentered(8, 180, 393, pctStr("R3"), 14, 80);
-  drawCentered(8, 180, 270, pctStr("R4"), 14, 80);
-  drawCentered(8, 180, 145, pctStr("R5"), 14, 80);
-  drawCentered(8, 334, 645, pctStr("L1"), 14, 80);
-  drawCentered(8, 334, 518, pctStr("L2"), 14, 80);
-  drawCentered(8, 334, 393, pctStr("L3"), 14, 80);
-  drawCentered(8, 334, 270, pctStr("L4"), 14, 80);
-  drawCentered(8, 334, 145, pctStr("L5"), 14, 80);
+  drawCentered(8, 180, 652, pctStr("R1"), 14, 80);
+  drawCentered(8, 180, 525, pctStr("R2"), 14, 80);
+  drawCentered(8, 180, 400, pctStr("R3"), 14, 80);
+  drawCentered(8, 180, 277, pctStr("R4"), 14, 80);
+  drawCentered(8, 180, 152, pctStr("R5"), 14, 80);
+  drawCentered(8, 334, 652, pctStr("L1"), 14, 80);
+  drawCentered(8, 334, 525, pctStr("L2"), 14, 80);
+  drawCentered(8, 334, 400, pctStr("L3"), 14, 80);
+  drawCentered(8, 334, 277, pctStr("L4"), 14, 80);
+  drawCentered(8, 334, 152, pctStr("L5"), 14, 80);
+
+  // Total Ridges Count on page 8
+  drawCentered(8, 250, 80, String(calc.totalRc), 16, 80);
 
   // ── PAGE 9 & 10: Thinking Pattern ────────────────────────────
-  drawCentered(9, 69, 495, calc.leftBrainResult, 14, 100);
-  drawCentered(10, 69, 495, calc.rightBrainResult, 14, 100);
+  drawCentered(9, 69, 502, calc.leftBrainResult, 14, 100);
+  drawCentered(10, 69, 502, calc.rightBrainResult, 14, 100);
 
   // ── PAGE 11: Work Ability Quotients ───────────────────────────
-  drawCentered(11, 405, 672, calc.workAbilityResults.iq || "", 14, 80);
-  drawCentered(11, 405, 567, calc.workAbilityResults.eq || "", 14, 80);
-  drawCentered(11, 405, 462, calc.workAbilityResults.cq || "", 14, 80);
-  drawCentered(11, 405, 353, calc.workAbilityResults.vq || "", 14, 80);
-  drawCentered(11, 405, 247, calc.workAbilityResults.aq || "", 14, 80);
+  drawCentered(11, 405, 679, calc.workAbilityResults.iq || "", 14, 80);
+  drawCentered(11, 405, 574, calc.workAbilityResults.eq || "", 14, 80);
+  drawCentered(11, 405, 469, calc.workAbilityResults.cq || "", 14, 80);
+  drawCentered(11, 405, 360, calc.workAbilityResults.vq || "", 14, 80);
+  drawCentered(11, 405, 254, calc.workAbilityResults.aq || "", 14, 80);
 
   // ── PAGES 12-16: Individual Work Ability ──────────────────────
-  drawCentered(12, 409, 701, calc.workAbilityResults.iq || "", 14, 80);
-  drawCentered(13, 411, 701, calc.workAbilityResults.eq || "", 14, 80);
-  drawCentered(14, 408, 701, calc.workAbilityResults.cq || "", 14, 80);
-  drawCentered(15, 408, 701, calc.workAbilityResults.vq || "", 14, 80);
-  drawCentered(16, 408, 701, calc.workAbilityResults.aq || "", 14, 80);
+  drawCentered(12, 409, 708, calc.workAbilityResults.iq || "", 14, 80);
+  drawCentered(13, 411, 708, calc.workAbilityResults.eq || "", 14, 80);
+  drawCentered(14, 408, 708, calc.workAbilityResults.cq || "", 14, 80);
+  drawCentered(15, 408, 708, calc.workAbilityResults.vq || "", 14, 80);
+  drawCentered(16, 408, 708, calc.workAbilityResults.aq || "", 14, 80);
 
   // ── PAGE 17: Achievement Styles ───────────────────────────────
-  drawCentered(17, 439, 646, calc.achievementStyles.follower || "", 14, 80);
-  drawCentered(17, 439, 515, calc.achievementStyles.experimental || "", 14, 80);
-  drawCentered(17, 439, 383, calc.achievementStyles.different || "", 14, 80);
-  drawCentered(17, 439, 255, calc.achievementStyles.thoughtful || "", 14, 80);
+  drawCentered(17, 439, 653, calc.achievementStyles.follower || "", 14, 80);
+  drawCentered(17, 439, 522, calc.achievementStyles.experimental || "", 14, 80);
+  drawCentered(17, 439, 390, calc.achievementStyles.different || "", 14, 80);
+  drawCentered(17, 439, 262, calc.achievementStyles.thoughtful || "", 14, 80);
 
   // ── PAGES 18-21: Individual Achievement ───────────────────────
-  drawCentered(18, 119, 587, calc.achievementStyles.follower || "", 14, 80);
-  drawCentered(19, 122, 553, calc.achievementStyles.experimental || "", 14, 80);
-  drawCentered(20, 122, 587, calc.achievementStyles.different || "", 14, 80);
-  drawCentered(21, 122, 553, calc.achievementStyles.thoughtful || "", 14, 80);
+  drawCentered(18, 119, 594, calc.achievementStyles.follower || "", 14, 80);
+  drawCentered(19, 122, 560, calc.achievementStyles.experimental || "", 14, 80);
+  drawCentered(20, 122, 594, calc.achievementStyles.different || "", 14, 80);
+  drawCentered(21, 122, 560, calc.achievementStyles.thoughtful || "", 14, 80);
 
   // ── PAGE 22: Learning Styles ──────────────────────────────────
-  drawCentered(22, 180, 627, calc.audResult, 14, 80);
-  drawCentered(22, 441, 523, calc.visResult, 14, 80);
-  drawCentered(22, 175, 415, calc.kinResult, 14, 80);
+  drawCentered(22, 180, 634, calc.audResult, 14, 80);
+  drawCentered(22, 441, 530, calc.visResult, 14, 80);
+  drawCentered(22, 175, 422, calc.kinResult, 14, 80);
 
   // ── PAGE 23: Personality Checkmarks ───────────────────────────
   if (calc.personalityFeatures) {
@@ -198,10 +201,10 @@ export async function generateReport(
       if (!subFeatures || !Object.values(subFeatures).some(Boolean)) continue;
       const upper = featureName.toUpperCase();
       // cx = x + boxWidth/2 from old drawCentered calls (x=81/205/329/453, boxWidth=40)
-      if (upper.includes("DOMINANT"))    drawCheckmark(23, 101, 573, 16);
-      if (upper.includes("INFLUENTIAL")) drawCheckmark(23, 225, 573, 16);
-      if (upper.includes("STEADY"))      drawCheckmark(23, 349, 573, 16);
-      if (upper.includes("CONSCIOUS"))   drawCheckmark(23, 473, 573, 16);
+      if (upper.includes("DOMINANT"))    drawCheckmark(23, 101, 580, 16);
+      if (upper.includes("INFLUENTIAL")) drawCheckmark(23, 225, 580, 16);
+      if (upper.includes("STEADY"))      drawCheckmark(23, 349, 580, 16);
+      if (upper.includes("CONSCIOUS"))   drawCheckmark(23, 473, 580, 16);
     }
   }
 
@@ -232,8 +235,8 @@ export async function generateReport(
     }
   };
 
-  drawCareerList(28, 50, 689, calc.careerRecommendations.pdf_highly_recommended, 20, 15);
-  drawCareerList(28, 325, 691, calc.careerRecommendations.pdf_recommended, 20, 15);
+  drawCareerList(28, 50, 696, calc.careerRecommendations.pdf_highly_recommended, 20, 15);
+  drawCareerList(28, 325, 697, calc.careerRecommendations.pdf_recommended, 20, 15);
 
   // ── Save modified template directly ───────────────────────────
   const pdfBytes = await pdfDoc.save();
