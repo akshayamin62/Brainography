@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="frontend/public/banner.png" alt="Brainography Logo" width="400"/>
+<img src="frontend/public/banner.png" alt="Brainography Logo" width="100%"/>
 
 # Brainography
 
