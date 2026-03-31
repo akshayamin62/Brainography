@@ -416,16 +416,16 @@ export default function SAFingerprintPage() {
           {/* Hand toggle */}
           <div className="flex gap-2 mb-4">
             <button
-              onClick={() => setSelectedHand('right')}
-              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${selectedHand === 'right' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-            >
-              Right Hand
-            </button>
-            <button
               onClick={() => setSelectedHand('left')}
               className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${selectedHand === 'left' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
             >
               Left Hand
+            </button>
+            <button
+              onClick={() => setSelectedHand('right')}
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${selectedHand === 'right' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+            >
+              Right Hand
             </button>
           </div>
 
