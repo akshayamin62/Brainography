@@ -10,6 +10,7 @@ export interface IUser extends Document {
   isActive: boolean;
   otp?: string;
   otpExpires?: Date;
+  createdBy?: mongoose.Types.ObjectId;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -50,6 +51,11 @@ const userSchema = new Schema<IUser>(
     },
     otpExpires: {
       type: Date,
+      default: undefined,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
       default: undefined,
     },
   },

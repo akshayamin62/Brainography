@@ -36,6 +36,7 @@ export function useAuth(requiredRole?: string) {
           // Redirect to correct dashboard
           if (userData.role === 'SUPER_ADMIN') router.replace('/super-admin/dashboard');
           else if (userData.role === 'ADMIN') router.replace('/admin/dashboard');
+          else if (userData.role === 'COUNSELOR') router.replace('/counselor/dashboard');
           else router.replace('/dashboard');
           return;
         }

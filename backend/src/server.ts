@@ -13,6 +13,7 @@ import fingerprintRoutes from "./routes/fingerprintRoutes";
 import documentRoutes from "./routes/documentRoutes";
 import analysisRoutes from "./routes/analysisRoutes";
 import reportRoutes from "./routes/reportRoutes";
+import counselorRoutes from "./routes/counselorRoutes";
 
 // Import models to register them with Mongoose
 import "./models/User";
@@ -65,6 +66,7 @@ app.use("/api/fingerprints", fingerprintRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/fingerprint-analysis", analysisRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/counselors", counselorRoutes);
 
 // Basic test route
 app.get('/', (_req, res) => {

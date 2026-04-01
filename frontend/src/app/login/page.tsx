@@ -115,6 +115,8 @@ export default function LoginPage() {
           router.push('/super-admin/dashboard');
         } else if (user.role === 'ADMIN') {
           router.push('/admin/dashboard');
+        } else if (user.role === 'COUNSELOR') {
+          router.push('/counselor/dashboard');
         } else {
           router.push('/dashboard');
         }

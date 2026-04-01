@@ -6,6 +6,6 @@ import { getStats } from "../controllers/dashboardController";
 
 const router = Router();
 
-router.get("/stats", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN), getStats);
+router.get("/stats", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR), getStats);
 
 export default router;

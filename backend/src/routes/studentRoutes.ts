@@ -11,9 +11,9 @@ import {
 
 const router = Router();
 
-router.get("/", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN), listStudents);
-router.get("/:id", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN), getStudent);
-router.post("/", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN), createStudent);
-router.put("/:id", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN), updateStudent);
+router.get("/", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR), listStudents);
+router.get("/:id", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR), getStudent);
+router.post("/", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR), createStudent);
+router.put("/:id", authenticate, authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR), updateStudent);
 
 export default router;

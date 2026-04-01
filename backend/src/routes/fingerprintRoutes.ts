@@ -40,14 +40,14 @@ const router = Router();
 router.post(
   "/upload",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   uploadFingerprint
 );
 
 router.post(
   "/save",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   upload.single("fingerprint"),
   saveFingerprint
 );
@@ -55,7 +55,7 @@ router.post(
 router.get(
   "/download/:studentId",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   downloadFingerprints
 );
 
@@ -63,7 +63,7 @@ router.get(
 router.get(
   "/:studentId",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   getFingerprints
 );
 

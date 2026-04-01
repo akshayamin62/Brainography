@@ -1,6 +1,7 @@
 export enum USER_ROLE {
   SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
+  COUNSELOR = 'COUNSELOR',
 }
 
 export interface AdminDetail {
@@ -35,6 +36,7 @@ export interface User {
 export interface Student {
   _id: string;
   adminId: User | string;
+  counselorId?: User | string;
   reportNo?: string;
   // Personal
   firstName: string;

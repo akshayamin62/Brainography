@@ -52,20 +52,21 @@ export default function InstallerContent() {
     setDownloaded(true);
   };
 
-  const steps = {
+  const steps: { windows: { n: number; text: string; link?: string }[]; mac: { n: number; text: string; link?: string }[] } = {
     windows: [
-      { n: 1, text: 'Double-click BrainographyScanner_Setup.exe' },
-      { n: 2, text: 'Click "Next" through the setup wizard' },
-      { n: 3, text: 'Click "Install" — it copies files and auto-configures' },
-      { n: 4, text: 'Click "Finish" — a green 🟢 icon appears in your taskbar (bottom-right)' },
-      { n: 5, text: 'Plug in your Futronic USB scanner — you\'re done!' },
+      { n: 1, text: 'Download and install the Futronic USB driver', link: 'https://futronic-tech.com/download.php' },
+      { n: 2, text: 'Once the driver is installed, run BrainographyScanner_Setup.exe' },
+      { n: 3, text: 'Click "Next" through the setup wizard' },
+      { n: 4, text: 'Click "Install" - it copies files and auto-configures' },
+      { n: 5, text: 'Click "Finish" - a green 🟢 icon appears in your taskbar (bottom-right)' },
+      { n: 6, text: 'Plug in your Futronic USB scanner - you\'re done!' },
     ],
     mac: [
       { n: 1, text: 'Open BrainographyScanner.dmg' },
-      { n: 2, text: 'Double-click Install.command inside the DMG' },
-      { n: 3, text: 'Enter your Mac password when prompted' },
+      { n: 2, text: 'Move BrainographyScanner to Applications' },
+      { n: 3, text: 'Open BrainographyScanner from Applications' },
       { n: 4, text: 'The service starts silently in the background' },
-      { n: 5, text: 'Plug in your Futronic USB scanner — you\'re done!' },
+      { n: 5, text: 'Plug in your Futronic USB scanner - you\'re done!' },
     ],
   };
 
@@ -170,7 +171,7 @@ export default function InstallerContent() {
           </svg>
           <div>
             <p className="font-semibold text-gray-900 text-sm">Mac</p>
-            <p className="text-xs text-gray-400 mt-0.5">.pkg installer</p>
+            <p className="text-xs text-gray-400 mt-0.5">.dmg installer</p>
           </div>
           <div className="flex items-center gap-1 text-xs text-blue-600 font-medium">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,12 +192,16 @@ export default function InstallerContent() {
             Installation steps — {active === 'windows' ? 'Windows' : 'Mac'}
           </h2>
           <ol className="space-y-3">
-            {steps[active].map(({ n, text }) => (
+            {steps[active].map(({ n, text, link }) => (
               <li key={n} className="flex items-start gap-3">
                 <span className="shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">
                   {n}
                 </span>
-                <span className="text-sm text-gray-700">{text}</span>
+                <span className="text-sm text-gray-700">
+                  {text}{link && (
+                    <> — <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">{link}</a></>
+                  )}
+                </span>
               </li>
             ))}
           </ol>

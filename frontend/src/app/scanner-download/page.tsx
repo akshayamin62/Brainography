@@ -57,16 +57,16 @@ export default function ScannerDownloadPage() {
     windows: [
       { n: 1, text: 'Double-click BrainographyScanner_Setup.exe' },
       { n: 2, text: 'Click "Next" through the setup wizard' },
-      { n: 3, text: 'Click "Install" — it copies files and auto-configures' },
-      { n: 4, text: 'Click "Finish" — a green 🟢 icon appears in your taskbar (bottom-right)' },
-      { n: 5, text: 'Plug in your Futronic USB scanner — you\'re done!' },
+      { n: 3, text: 'Click "Install" - it copies files and auto-configures' },
+      { n: 4, text: 'Click "Finish" - a green 🟢 icon appears in your taskbar (bottom-right)' },
+      { n: 5, text: 'Plug in your Futronic USB scanner - you\'re done!' },
     ],
     mac: [
       { n: 1, text: 'Open BrainographyScanner.dmg' },
       { n: 2, text: 'Double-click Install.command inside the DMG' },
       { n: 3, text: 'Enter your Mac password when prompted' },
       { n: 4, text: 'The service starts silently in the background' },
-      { n: 5, text: 'Plug in your Futronic USB scanner — you\'re done!' },
+      { n: 5, text: 'Plug in your Futronic USB scanner - you\'re done!' },
     ],
   };
 
@@ -182,7 +182,7 @@ export default function ScannerDownloadPage() {
           </svg>
           <div>
             <p className="font-semibold text-gray-900 text-sm">Mac</p>
-            <p className="text-xs text-gray-400 mt-0.5">.pkg installer</p>
+            <p className="text-xs text-gray-400 mt-0.5">.dmg installer</p>
           </div>
           <div className="flex items-center gap-1 text-xs text-blue-600 font-medium">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

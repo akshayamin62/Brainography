@@ -53,3 +53,9 @@ export const superAdminOnly = authorize(USER_ROLE.SUPER_ADMIN);
 // Super admins or admins can access
 export const superAdminOrAdmin = authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN);
 
+// Super admins, admins, or counselors can access
+export const superAdminOrAdminOrCounselor = authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR);
+
+// Admins or counselors can access
+export const adminOrCounselor = authorize(USER_ROLE.ADMIN, USER_ROLE.COUNSELOR);
+

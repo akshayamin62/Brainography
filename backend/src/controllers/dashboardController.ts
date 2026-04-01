@@ -23,7 +23,20 @@ export const getStats = async (req: AuthRequest, res: Response): Promise<Respons
 
     if (userRole === "ADMIN") {
       const adminId = req.user?.userId;
-      const totalStudents = await Student.countDocuments({ adminId });
+      const [totalStudents, totalCounselors] = await Promise.all([
+        Student.countDocuments({ adminId }),
+        User.countDocuments({ role: "COUNSELOR", createdBy: adminId }),
+      ]);
+
+      return res.json({
+        success: true,
+        data: { totalStudents, totalCounselors },
+      });
+    }
+
+    if (userRole === "COUNSELOR") {
+      const counselorId = req.user?.userId;
+      const totalStudents = await Student.countDocuments({ counselorId });
 
       return res.json({
         success: true,

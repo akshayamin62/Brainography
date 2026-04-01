@@ -39,7 +39,7 @@ const router = Router();
 router.get(
   "/download/:docId",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   downloadDocument
 );
 
@@ -47,7 +47,7 @@ router.get(
 router.get(
   "/:studentId",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   listDocuments
 );
 

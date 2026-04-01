@@ -13,10 +13,13 @@ export const listStudents = async (req: AuthRequest, res: Response): Promise<Res
     let filter = {};
     if (userRole === "ADMIN") {
       filter = { adminId: userId };
+    } else if (userRole === "COUNSELOR") {
+      filter = { counselorId: userId };
     }
 
     const students = await Student.find(filter)
       .populate("adminId", "name email")
+      .populate("counselorId", "name email")
       .sort({ createdAt: -1 });
 
     // Get document status for all students
@@ -54,8 +57,14 @@ export const getStudent = async (req: AuthRequest, res: Response): Promise<Respo
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
+    // Counselor can only see their own students
+    if (userRole === "COUNSELOR" && student.counselorId?.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
     // Populate after ownership check
     await student.populate("adminId", "name email");
+    await student.populate("counselorId", "name email");
 
     return res.json({ success: true, data: student });
   } catch (err) {
@@ -87,6 +96,7 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
 
     // Determine the admin owner
     let assignedAdminId = userId; // Default: current user (admin)
+    let assignedCounselorId = undefined;
     if (userRole === "SUPER_ADMIN" && adminId) {
       // Super admin can assign to any admin
       const admin = await User.findById(adminId);
@@ -94,6 +104,14 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
         return res.status(400).json({ success: false, message: "Invalid admin ID" });
       }
       assignedAdminId = adminId;
+    } else if (userRole === "COUNSELOR") {
+      // Counselor: assign to the admin who created this counselor
+      const counselor = await User.findById(userId);
+      if (!counselor || !counselor.createdBy) {
+        return res.status(400).json({ success: false, message: "Counselor not linked to an admin" });
+      }
+      assignedAdminId = counselor.createdBy.toString();
+      assignedCounselorId = userId;
     }
 
     const name = [firstName, middleName, lastName].filter(Boolean).join(" ");
@@ -119,6 +137,7 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
 
       const student = new Student({
         adminId: assignedAdminId,
+        counselorId: assignedCounselorId || undefined,
         reportNo,
         firstName, middleName: middleName || "", lastName,
         dob, gender, countryCode: countryCode || "+91", mobile, email,
@@ -133,7 +152,7 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
 
       try {
         await student.save();
-        populated = await Student.findById(student._id).populate("adminId", "name email");
+        populated = await Student.findById(student._id).populate("adminId", "name email").populate("counselorId", "name email");
         break; // success — exit retry loop
       } catch (saveErr: any) {
         if (saveErr.code === 11000 && saveErr.keyPattern?.reportNo) {
@@ -171,6 +190,10 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<Re
     }
 
     if (userRole === "ADMIN" && student.adminId?.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    if (userRole === "COUNSELOR" && student.counselorId?.toString() !== userId) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
@@ -217,7 +240,7 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<Re
 
     await student.save();
 
-    const populated = await Student.findById(student._id).populate("adminId", "name email");
+    const populated = await Student.findById(student._id).populate("adminId", "name email").populate("counselorId", "name email");
 
     return res.json({ success: true, message: "Student updated", data: populated });
   } catch (err) {

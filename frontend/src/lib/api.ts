@@ -54,6 +54,13 @@ export const adminAPI = {
     api.put(`/admins/${id}`, data),
 };
 
+export const counselorAPI = {
+  list: () => api.get('/counselors'),
+  get: (id: string) => api.get(`/counselors/${id}`),
+  create: (data: any) => api.post('/counselors', data),
+  update: (id: string, data: any) => api.put(`/counselors/${id}`, data),
+};
+
 export const studentAPI = {
   list: () => api.get('/students'),
   get: (id: string) => api.get(`/students/${id}`),

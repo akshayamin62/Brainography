@@ -294,12 +294,13 @@ export default function SuperAdminStudentsPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Mobile</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('createdAt')}>Created On<SortIcon field="createdAt" /></th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('admin')}>Admin<SortIcon field="admin" /></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Added By</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No students found</td></tr>
+                    <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-500">No students found</td></tr>
                   ) : (
                     filtered.map((student, idx) => (
                       <tr key={student._id} className="hover:bg-gray-50 transition-colors">
@@ -314,6 +315,7 @@ export default function SuperAdminStudentsPage() {
                             ? (adminCompanyMap.get(student.adminId._id) || student.adminId.name || 'N/A')
                             : 'N/A'}
                         </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{student.counselorId && typeof student.counselorId === 'object' ? (student.counselorId as any).name : 'Self'}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             <button onClick={() => router.push(`/super-admin/students/${student._id}/profile`)}
