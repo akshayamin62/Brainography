@@ -13,7 +13,7 @@ function detectOS(): OS {
 }
 
 const WINDOWS_FILE = '/downloads/BrainographyScanner_Setup.exe';
-const MAC_FILE = '/downloads/BrainographyScanner.dmg';
+const MAC_FILE = '/downloads/BrainographyScanner.dmg.zip';
 
 export default function InstallerContent() {
   const [os, setOS] = useState<OS>(null);
@@ -62,11 +62,12 @@ export default function InstallerContent() {
       { n: 6, text: 'Plug in your Futronic USB scanner - you\'re done!' },
     ],
     mac: [
-      { n: 1, text: 'Open BrainographyScanner.dmg' },
-      { n: 2, text: 'Move BrainographyScanner to Applications' },
-      { n: 3, text: 'Open BrainographyScanner from Applications' },
-      { n: 4, text: 'The service starts silently in the background' },
-      { n: 5, text: 'Plug in your Futronic USB scanner - you\'re done!' },
+      { n: 1, text: 'Unzip BrainographyScanner' },
+      { n: 2, text: 'Open BrainographyScanner.dmg' },
+      { n: 3, text: 'Move BrainographyScanner to Applications' },
+      { n: 4, text: 'Open BrainographyScanner from Applications' },
+      { n: 5, text: 'The service starts silently in the background' },
+      { n: 6, text: 'Plug in your Futronic USB scanner - you\'re done!' },
     ],
   };
 

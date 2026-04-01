@@ -13,7 +13,7 @@ function detectOS(): OS {
 }
 
 const WINDOWS_FILE = '/downloads/BrainographyScanner_Setup.exe';
-const MAC_FILE = '/downloads/BrainographyScanner.dmg';
+const MAC_FILE = '/downloads/BrainographyScanner.dmg.zip';
 
 export default function ScannerDownloadPage() {
   const [os, setOS] = useState<OS>(null);
