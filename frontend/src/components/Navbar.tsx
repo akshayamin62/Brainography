@@ -58,7 +58,7 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center pl-20">
             <Link href="/" className="flex items-center group">
-              <img src="/thumbnail.png" alt="Brainography" className="h-20 w-auto object-contain" />
+              <img src="/logo.png" alt="Brainography" className="h-20 w-auto object-contain" />
             </Link>
           </div>
 
