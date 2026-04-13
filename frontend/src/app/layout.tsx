@@ -15,6 +15,29 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Brainography",
   description: "Admin Panel",
+  icons: {
+    icon: "/thumbnail.png",
+    shortcut: "/thumbnail.png",
+    apple: "/thumbnail.png",
+  },
+  openGraph: {
+    title: "Brainography",
+    description: "Admin Panel",
+    images: [
+      {
+        url: "/thumbnail.png",
+        width: 1200,
+        height: 630,
+        alt: "Brainography",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Brainography",
+    description: "Admin Panel",
+    images: ["/thumbnail.png"],
+  },
 };
 
 export default function RootLayout({
