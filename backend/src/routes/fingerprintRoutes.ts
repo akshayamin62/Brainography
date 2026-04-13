@@ -10,6 +10,7 @@ import {
   uploadFingerprint,
   saveFingerprint,
   downloadFingerprints,
+  deleteFingerprint,
 } from "../controllers/fingerprintController";
 
 const FINGERPRINTS_DIR = path.join(__dirname, "../../uploads/fingerprints");
@@ -57,6 +58,13 @@ router.get(
   authenticate,
   authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   downloadFingerprints
+);
+
+router.delete(
+  "/:id",
+  authenticate,
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
+  deleteFingerprint
 );
 
 // This must be LAST - catch-all param route

@@ -3,12 +3,14 @@ import {
   login,
   verifyOTP,
   getProfile,
+  generateCaptcha,
 } from "../controllers/authController";
 import { authenticate } from "../middleware/auth";
 
 const router = Router();
 
 // Public routes
+router.get("/captcha", generateCaptcha);
 router.post("/login", login);
 router.post("/verify-otp", verifyOTP);
 

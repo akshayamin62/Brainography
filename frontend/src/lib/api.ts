@@ -14,6 +14,7 @@ export const withToken = (url: string): string => {
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 30000, // BUG-042: 30 second timeout
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,8 +31,28 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// BUG-043: Add 401 response interceptor for token expiry
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      // Token expired or invalid — clear auth state and redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('tokenExpiry');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const authAPI = {
-  login: (data: { email: string; captcha: string; captchaInput: string }) =>
+  getCaptcha: () =>
+    api.get('/auth/captcha'),
+
+  login: (data: { email: string; captchaId: string; captchaInput: string }) =>
     api.post('/auth/login', data),
   
   verifyOTP: (data: { email: string; otp: string }) =>

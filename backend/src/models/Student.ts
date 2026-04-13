@@ -65,7 +65,7 @@ const studentSchema = new Schema<IStudent>(
     gender: { type: String, required: true },
     countryCode: { type: String, default: "+91" },
     mobile: { type: String, required: true },
-    email: { type: String, required: true },
+    email: { type: String, required: true, index: true },
     // Academic
     educationLevel: { type: String, required: true },
     board: { type: String, default: "" },

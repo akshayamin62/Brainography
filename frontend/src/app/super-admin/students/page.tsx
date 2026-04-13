@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import SuperAdminLayout from '@/components/SuperAdminLayout';
@@ -50,7 +50,7 @@ export default function SuperAdminStudentsPage() {
   const [fMiddleName, setFMiddleName] = useState('');
   const [fLastName, setFLastName] = useState('');
   const [fDob, setFDob] = useState('');
-  const [fGender, setFGender] = useState('Male');
+  const [fGender, setFGender] = useState('');
   const [fCountryCode, setFCountryCode] = useState('+91');
   const [fMobile, setFMobile] = useState('');
   const [fEmail, setFEmail] = useState('');
@@ -102,26 +102,26 @@ export default function SuperAdminStudentsPage() {
     return map;
   }, [admins]);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       const res = await studentAPI.list();
       if (res.data.success) setStudents(res.data.data);
     } catch { toast.error('Failed to fetch students'); }
-  };
+  }, []);
 
-  const fetchAdmins = async () => {
+  const fetchAdmins = useCallback(async () => {
     try {
       const res = await adminAPI.list();
       if (res.data.success) setAdmins(res.data.data);
     } catch { /* ignore */ }
-  };
+  }, []);
 
-  useEffect(() => { if (user) { fetchStudents(); fetchAdmins(); } }, [user]);
+  useEffect(() => { if (user) { fetchStudents(); fetchAdmins(); } }, [user, fetchStudents, fetchAdmins]);
 
   const resetForm = () => {
     setFAdminId('');
     setFFirstName(''); setFMiddleName(''); setFLastName('');
-    setFDob(''); setFGender('Male'); setFCountryCode('+91'); setFMobile(''); setFEmail('');
+    setFDob(''); setFGender(''); setFCountryCode('+91'); setFMobile(''); setFEmail('');
     setFEducationLevel(''); setFBoard(''); setFBoardFullName('');
     setFInstitutionName(''); setFInstitutionCountry(''); setFFieldOfStudy(''); setFMedium('');
     setFAddress(''); setFCountry(''); setFState(''); setFCity('');
@@ -140,11 +140,11 @@ export default function SuperAdminStudentsPage() {
         dob: fDob, gender: fGender, countryCode: fCountryCode, mobile: fMobile, email: fEmail,
         educationLevel: fEducationLevel, board: fBoard || undefined, boardFullName: fBoardFullName || undefined,
         institutionName: fInstitutionName,
-        institutionCountry: fInstitutionCountry ? countries.find(c => c.isoCode === fInstitutionCountry)?.name || fInstitutionCountry : '',
+        institutionCountry: fInstitutionCountry || '',
         fieldOfStudy: fFieldOfStudy || undefined, mediumOfTeaching: fMedium,
         address: fAddress,
-        country: fCountry ? countries.find(c => c.isoCode === fCountry)?.name || '' : '',
-        state: fState ? states.find(s => s.isoCode === fState)?.name || '' : '',
+        country: fCountry || '',
+        state: fState || '',
         city: fCity,
         siblings: parseInt(fSiblings) || 0, familyStructure: fFamilyStructure,
         motherActivity: fMotherActivity, fatherActivity: fFatherActivity,
@@ -389,14 +389,13 @@ export default function SuperAdminStudentsPage() {
                   <div><label className={labelCls}>Date of Birth *</label><input type="date" value={fDob} onChange={e => setFDob(e.target.value)} className={inputCls} required /></div>
                   <div>
                     <label className={labelCls}>Gender *</label>
-                    <div className="flex items-center gap-4 mt-2">
-                      {['Male', 'Female'].map(g => (
-                        <label key={g} className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
-                          <input type="radio" name="gender" value={g} checked={fGender === g} onChange={() => setFGender(g)} className="accent-blue-600" />
-                          {g}
-                        </label>
-                      ))}
-                    </div>
+                    <select value={fGender} onChange={e => setFGender(e.target.value)} className={selectCls} required>
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -510,6 +509,7 @@ export default function SuperAdminStudentsPage() {
                       <option value="">Select</option>
                       <option value="Job">Job</option>
                       <option value="Business">Business</option>
+                      <option value="Service">Service</option>
                       <option value="Homemaker">Homemaker</option>
                     </select>
                   </div>
@@ -519,6 +519,8 @@ export default function SuperAdminStudentsPage() {
                       <option value="">Select</option>
                       <option value="Job">Job</option>
                       <option value="Business">Business</option>
+                      <option value="Service">Service</option>
+                      <option value="Professional">Professional</option>
                       <option value="Homemaker">Homemaker</option>
                     </select>
                   </div>
@@ -534,10 +536,11 @@ export default function SuperAdminStudentsPage() {
                       <option value="">Select</option>
                       <option value="Indoor">Indoor</option>
                       <option value="Outdoor">Outdoor</option>
+                      <option value="Both">Both</option>
                       <option value="None">None</option>
                     </select>
                   </div>
-                  {(fGames === 'Indoor' || fGames === 'Outdoor') && (
+                  {(fGames === 'Indoor' || fGames === 'Outdoor' || fGames === 'Both') && (
                     <div><label className={labelCls}>Other Games</label><input type="text" value={fOtherGames} onChange={e => setFOtherGames(e.target.value)} className={inputCls} /></div>
                   )}
                 </div>

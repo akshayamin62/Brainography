@@ -52,7 +52,7 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
 
   try {
     await transporter.sendMail({
-      from: `"Community Platform" <${process.env.EMAIL_ADDRESS}>`,
+      from: `"Brainography" <${process.env.EMAIL_ADDRESS}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -80,55 +80,30 @@ export const sendOTPEmail = async (
   purpose: 'signup' | 'login' = 'login'
 ): Promise<void> => {
   const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Your OTP Code</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0;">
-      <div style="max-width: 600px; margin: 20px auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-        <h2 style="color: #2563eb; text-align: center; margin-bottom: 30px;">Your OTP Code</h2>
-        <p>Hi ${name},</p>
-        <p>Your ${purpose === 'signup' ? 'signup' : 'login'} verification code is:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <div style="background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); color: white; padding: 20px; border-radius: 10px; display: inline-block; font-size: 32px; font-weight: bold; letter-spacing: 8px;">
+    <div style="font-family: 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 40px;">
+        <h2 style="text-align: center; color: #1a1d2e; margin-bottom: 8px;">
+          ${purpose === 'signup' ? 'Welcome to Brainography!' : 'Login Verification'}
+        </h2>
+        <p style="text-align: center; color: #334155; margin-bottom: 24px;">
+          Hi ${name}, here is your OTP code:
+        </p>
+        <div style="text-align: center; margin: 24px 0;">
+          <span style="display: inline-block; border: 2px solid #334155; color: #1a1d2e; font-size: 32px; font-weight: bold; letter-spacing: 12px; padding: 16px 32px; border-radius: 8px;">
             ${otp}
-          </div>
+          </span>
         </div>
-        <p style="text-align: center; color: #666; font-size: 14px;">
-          <strong>This code will expire in 10 minutes.</strong>
-        </p>
-        <p style="color: #999; font-size: 12px; margin-top: 30px;">
-          If you didn't ${purpose === 'signup' ? 'sign up' : 'request this code'}, please ignore this email.
-        </p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #999; font-size: 12px; text-align: center;">
-          This is an automated message. Please do not reply to this email.
+        <p style="text-align: center; color: #334155; font-size: 14px;">
+          This code expires in <strong>10 minutes</strong>. Do not share it with anyone.
         </p>
       </div>
-    </body>
-    </html>
-  `;
-
-  const text = `
-    Your OTP Code
-    
-    Hi ${name},
-    
-    Your ${purpose === 'signup' ? 'signup' : 'login'} verification code is: ${otp}
-    
-    This code will expire in 10 minutes.
-    
-    If you didn't ${purpose === 'signup' ? 'sign up' : 'request this code'}, please ignore this email.
+    </div>
   `;
 
   await sendEmail({
     to: email,
     subject: `Your ${purpose === 'signup' ? 'Signup' : 'Login'} Verification Code`,
     html,
-    text,
   });
 };
 

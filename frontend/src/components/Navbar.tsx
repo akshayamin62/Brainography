@@ -44,6 +44,7 @@ export default function Navbar() {
   const getDashboardPath = () => {
     if (userRole === 'SUPER_ADMIN') return '/super-admin/dashboard';
     if (userRole === 'ADMIN') return '/admin/dashboard';
+    if (userRole === 'COUNSELOR') return '/counselor/dashboard';
     return '/dashboard';
   };
 
@@ -77,7 +78,7 @@ export default function Navbar() {
                 <Link
                   href={getDashboardPath()}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                    isActivePrefix('/super-admin') || isActivePrefix('/admin') || isActive('/dashboard')
+                    isActivePrefix('/super-admin') || isActivePrefix('/admin') || isActivePrefix('/counselor') || isActive('/dashboard')
                       ? 'text-blue-600 bg-blue-50 shadow-md'
                       : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50/50'
                   }`}

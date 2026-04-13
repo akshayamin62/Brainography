@@ -43,7 +43,7 @@ export const uploadDocument = async (req: AuthRequest, res: Response): Promise<R
   try {
     const { studentId } = req.params;
     const userId = req.user?.userId;
-    const file = (req as any).file;
+    const file = req.file;
 
     if (!file) {
       return res.status(400).json({ success: false, message: "No file uploaded" });
@@ -52,6 +52,15 @@ export const uploadDocument = async (req: AuthRequest, res: Response): Promise<R
     const student = await Student.findById(studentId);
     if (!student) {
       return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    // Ownership check
+    const userRole = req.user?.role;
+    if (userRole === "ADMIN" && student.adminId?.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+    if (userRole === "COUNSELOR" && student.counselorId?.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Access denied" });
     }
 
     // Remove existing document if any (one doc per student)

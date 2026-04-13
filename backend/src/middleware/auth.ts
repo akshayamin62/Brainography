@@ -2,13 +2,14 @@ import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwt";
 import User from "../models/User";
 
-// Extend Express Request to include user
+// Extend Express Request to include user and multer file
 export interface AuthRequest extends Request {
   user?: {
     userId: string;
     email: string;
     role: string;
   };
+  file?: Express.Multer.File;
 }
 
 export const authenticate = async (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import AdminLayout from '@/components/AdminLayout';
@@ -94,7 +94,7 @@ export default function AdminStudentProfilePage() {
   const showFieldOfStudy = !!fEducationLevel && fEducationLevel !== 'secondary_school';
   const showStandard = fEducationLevel === 'secondary_school' || fEducationLevel === 'higher_secondary_school';
 
-  const fetchStudent = async () => {
+  const fetchStudent = useCallback(async () => {
     try {
       const res = await studentAPI.get(studentId);
       if (res.data.success) {
@@ -107,7 +107,7 @@ export default function AdminStudentProfilePage() {
     } finally {
       setFetching(false);
     }
-  };
+  }, [studentId]);
 
   const populateForm = (s: Student) => {
     setFFirstName(s.firstName || '');
@@ -141,7 +141,7 @@ export default function AdminStudentProfilePage() {
 
   useEffect(() => {
     if (user && studentId) fetchStudent();
-  }, [user, studentId]);
+  }, [user, studentId, fetchStudent]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,7 +160,7 @@ export default function AdminStudentProfilePage() {
         siblings: fSiblings, familyStructure: fFamilyStructure,
         motherActivity: fMotherActivity, fatherActivity: fFatherActivity,
         hobbies: fHobbies, games: fGames,
-        otherGames: (fGames === 'Indoor' || fGames === 'Outdoor') ? fOtherGames : '',
+        otherGames: (fGames === 'Indoor' || fGames === 'Outdoor' || fGames === 'Both') ? fOtherGames : '',
         standard: showStandard ? fStandard : '',
       });
       if (res.data.success) {
@@ -400,7 +400,9 @@ export default function AdminStudentProfilePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Mother&apos;s Activity *</label>
                     <select value={fMotherActivity} onChange={e => setFMotherActivity(e.target.value)} className={inputCls} required>
                       <option value="">Select</option>
-                      <option value="Working">Working</option>
+                      <option value="Job">Job</option>
+                      <option value="Business">Business</option>
+                      <option value="Service">Service</option>
                       <option value="Homemaker">Homemaker</option>
                     </select>
                   </div>
@@ -408,9 +410,11 @@ export default function AdminStudentProfilePage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Father&apos;s Activity *</label>
                     <select value={fFatherActivity} onChange={e => setFFatherActivity(e.target.value)} className={inputCls} required>
                       <option value="">Select</option>
+                      <option value="Job">Job</option>
                       <option value="Business">Business</option>
                       <option value="Service">Service</option>
                       <option value="Professional">Professional</option>
+                      <option value="Homemaker">Homemaker</option>
                     </select>
                   </div>
                 </div>
@@ -429,9 +433,10 @@ export default function AdminStudentProfilePage() {
                       <option value="Indoor">Indoor</option>
                       <option value="Outdoor">Outdoor</option>
                       <option value="Both">Both</option>
+                      <option value="None">None</option>
                     </select>
                   </div>
-                  {(fGames === 'Indoor' || fGames === 'Outdoor') && (
+                  {(fGames === 'Indoor' || fGames === 'Outdoor' || fGames === 'Both') && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Specify Games</label>
                       <input type="text" value={fOtherGames} onChange={e => setFOtherGames(e.target.value)} className={inputCls} />

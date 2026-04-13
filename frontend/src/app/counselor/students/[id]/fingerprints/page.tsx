@@ -9,7 +9,7 @@ import { fingerprintAPI, studentAPI, BACKEND_URL, withToken } from '@/lib/api';
 import { Student, FingerprintData } from '@/types';
 import toast, { Toaster } from 'react-hot-toast';
 
-const SCANNER_URL = 'http://localhost:8585';
+const SCANNER_URL = process.env.NEXT_PUBLIC_SCANNER_URL || 'http://localhost:8585';
 
 const FINGERS = [
   { id: 'R1', label: 'Right Thumb' },
@@ -108,6 +108,11 @@ export default function CounselorFingerprintScanPage() {
   const autoStartScan = async (position: string, angleKey: string) => {
     setScanning(true);
     setPreviewImage(null);
+    // BUG-005: Clear existing interval before starting new one
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
     try {
       await fetch(`${SCANNER_URL}/scanner/start_preview`, { method: 'POST' });
       const intervalId = setInterval(async () => {
@@ -149,6 +154,7 @@ export default function CounselorFingerprintScanPage() {
           toast.success('Fingerprint captured and saved!');
           fetchData();
           closeScanModal();
+          return;
         }
       } else {
         toast.error(data.message || 'Failed to capture');
@@ -156,8 +162,10 @@ export default function CounselorFingerprintScanPage() {
     } catch {
       toast.error('Capture failed');
     } finally {
-      setUploading(false);
-      setScanning(false);
+      if (scanModal) {
+        setUploading(false);
+        setScanning(false);
+      }
     }
   };
 

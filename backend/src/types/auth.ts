@@ -1,9 +1,2 @@
-import { Request } from "express";
-
-export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    email: string;
-    role: string;
-  };
-}
+// Re-export AuthRequest from the canonical location
+export { AuthRequest } from "../middleware/auth";

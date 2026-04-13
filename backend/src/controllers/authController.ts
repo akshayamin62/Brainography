@@ -1,4 +1,5 @@
 import { Response, Request } from "express";
+import crypto from "crypto";
 import User from "../models/User";
 import { generateToken } from "../utils/jwt";
 import { sendOTPEmail } from "../utils/email";
@@ -9,12 +10,38 @@ import {
   isOTPExpired,
   getOTPExpiration,
 } from "../utils/otp";
+import { AuthRequest } from "../middleware/auth";
+
+// Server-side captcha store: Map<captchaId, { text, expiresAt }>
+const captchaStore = new Map<string, { text: string; expiresAt: number }>();
+
+// Clean expired captchas every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of captchaStore) {
+    if (val.expiresAt < now) captchaStore.delete(key);
+  }
+}, 5 * 60 * 1000);
+
+// Generate a server-side captcha
+export const generateCaptcha = (_req: Request, res: Response): Response => {
+  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ2345689';
+  let text = '';
+  for (let i = 0; i < 6; i++) {
+    text += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  const captchaId = crypto.randomUUID();
+  captchaStore.set(captchaId, { text, expiresAt: Date.now() + 5 * 60 * 1000 });
+  return res.json({ success: true, data: { captchaId, captchaText: text } });
+};
 
 interface LoginRequest extends Request {
   body: {
     email: string;
-    captcha: string;
+    captchaId: string;
     captchaInput: string;
+    // Legacy fields for backward compatibility
+    captcha?: string;
   };
 }
 
@@ -28,7 +55,7 @@ interface VerifyOTPRequest extends Request {
 // Request OTP for login
 export const login = async (req: LoginRequest, res: Response): Promise<Response> => {
   try {
-    const { email, captcha, captchaInput } = req.body;
+    const { email, captchaInput, captchaId } = req.body;
 
     if (!email) {
       return res.status(400).json({
@@ -37,14 +64,31 @@ export const login = async (req: LoginRequest, res: Response): Promise<Response>
       });
     }
 
-    if (!captcha || !captchaInput) {
+    if (!captchaId || !captchaInput) {
       return res.status(400).json({
         success: false,
         message: "Captcha is required",
       });
     }
 
-    if (captcha !== captchaInput) {
+    // Server-side captcha validation
+    const storedCaptcha = captchaStore.get(captchaId);
+    if (!storedCaptcha) {
+      return res.status(400).json({
+        success: false,
+        message: "Captcha expired or invalid. Please refresh the captcha.",
+      });
+    }
+    captchaStore.delete(captchaId); // One-time use
+
+    if (storedCaptcha.expiresAt < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: "Captcha has expired. Please refresh the captcha.",
+      });
+    }
+
+    if (storedCaptcha.text.toUpperCase() !== captchaInput.toUpperCase()) {
       return res.status(400).json({
         success: false,
         message: "Invalid captcha. Please try again.",
@@ -68,7 +112,6 @@ export const login = async (req: LoginRequest, res: Response): Promise<Response>
 
     // Generate OTP
     const otp = generateOTP();
-    console.log(otp);
     const hashedOTP = await hashOTP(otp);
     const otpExpires = getOTPExpiration(10);
 
@@ -177,9 +220,9 @@ export const verifyOTP = async (req: VerifyOTPRequest, res: Response): Promise<R
 };
 
 // Get current user profile
-export const getProfile = async (req: Request, res: Response): Promise<Response> => {
+export const getProfile = async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = req.user?.userId;
 
     if (!userId) {
       return res.status(401).json({

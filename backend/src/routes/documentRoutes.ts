@@ -9,6 +9,7 @@ import {
   listDocuments,
   uploadDocument,
   downloadDocument,
+  deleteDocument,
 } from "../controllers/documentController";
 
 const DOCS_DIR = path.join(__dirname, "../../uploads/student_docs");
@@ -54,9 +55,16 @@ router.get(
 router.post(
   "/:studentId",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   upload.single("document"),
   uploadDocument
+);
+
+router.delete(
+  "/:docId",
+  authenticate,
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
+  deleteDocument
 );
 
 export default router;

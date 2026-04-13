@@ -3,7 +3,12 @@ import { AuthRequest } from "../middleware/auth";
 import User from "../models/User";
 import AdminDetail from "../models/AdminDetail";
 import Student from "../models/Student";
+import Fingerprint from "../models/Fingerprint";
+import FingerprintAnalysis from "../models/FingerprintAnalysis";
+import StudentDocument from "../models/StudentDocument";
 import { sendAdminWelcomeEmail } from "../utils/email";
+import fs from "fs";
+import path from "path";
 
 // GET /api/admins - List all admins (Super Admin only)
 export const listAdmins = async (_req: AuthRequest, res: Response): Promise<Response> => {
@@ -145,8 +150,12 @@ export const updateAdmin = async (req: AuthRequest, res: Response): Promise<Resp
     }
 
     if (firstName || lastName) {
-      const name = [firstName, middleName, lastName].filter(Boolean).join(" ");
-      admin.name = name;
+      // Merge with existing admin detail to avoid dropping name parts
+      const existingDetail = await AdminDetail.findOne({ userId: id });
+      const fn = firstName || existingDetail?.firstName || admin.name.split(' ')[0] || '';
+      const mn = middleName !== undefined ? middleName : (existingDetail?.middleName || '');
+      const ln = lastName || existingDetail?.lastName || admin.name.split(' ').pop() || '';
+      admin.name = [fn, mn, ln].filter(Boolean).join(' ');
     }
     if (phone !== undefined) admin.phone = phone;
     if (isActive !== undefined) admin.isActive = isActive;
@@ -190,7 +199,7 @@ export const updateAdmin = async (req: AuthRequest, res: Response): Promise<Resp
   }
 };
 
-// DELETE /api/admins/:id - Delete admin
+// DELETE /api/admins/:id - Delete admin (with cascade)
 export const deleteAdmin = async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
@@ -200,9 +209,44 @@ export const deleteAdmin = async (req: AuthRequest, res: Response): Promise<Resp
       return res.status(404).json({ success: false, message: "Admin not found" });
     }
 
+    // Find all students belonging to this admin
+    const students = await Student.find({ adminId: id });
+    const studentIds = students.map(s => s._id);
+
+    if (studentIds.length > 0) {
+      // Delete fingerprint files from disk
+      const fingerprints = await Fingerprint.find({ studentId: { $in: studentIds } });
+      const fpDir = path.join(__dirname, "../../uploads/fingerprints");
+      for (const fp of fingerprints) {
+        const fpPath = path.join(fpDir, fp.imagePath);
+        try { await fs.promises.unlink(fpPath); } catch { /* file may not exist */ }
+      }
+
+      // Delete document files from disk
+      const docs = await StudentDocument.find({ studentId: { $in: studentIds } });
+      const docDir = path.join(__dirname, "../../uploads/student_docs");
+      for (const doc of docs) {
+        const docPath = path.join(docDir, doc.filename);
+        try { await fs.promises.unlink(docPath); } catch { /* file may not exist */ }
+      }
+
+      // Delete all dependent records
+      await Fingerprint.deleteMany({ studentId: { $in: studentIds } });
+      await FingerprintAnalysis.deleteMany({ studentId: { $in: studentIds } });
+      await StudentDocument.deleteMany({ studentId: { $in: studentIds } });
+      await Student.deleteMany({ adminId: id });
+    }
+
+    // Delete counselors created by this admin
+    await User.deleteMany({ role: "COUNSELOR", createdBy: id });
+
+    // Delete admin detail
+    await AdminDetail.findOneAndDelete({ userId: id });
+
+    // Delete admin user
     await User.findByIdAndDelete(id);
 
-    return res.json({ success: true, message: "Admin deleted" });
+    return res.json({ success: true, message: "Admin and all associated data deleted" });
   } catch (err) {
     console.error("Delete admin error:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });

@@ -16,6 +16,8 @@ export default function DashboardPage() {
           router.replace('/super-admin/dashboard');
         } else if (user.role === 'ADMIN') {
           router.replace('/admin/dashboard');
+        } else if (user.role === 'COUNSELOR') {
+          router.replace('/counselor/dashboard');
         } else {
           router.replace('/login');
         }

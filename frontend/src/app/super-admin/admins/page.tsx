@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import SuperAdminLayout from '@/components/SuperAdminLayout';
@@ -49,18 +49,18 @@ export default function AdminsPage() {
     })).sort((a, b) => a.name.localeCompare(b.name));
   }, [countries]);
 
-  const fetchAdmins = async () => {
+  const fetchAdmins = useCallback(async () => {
     try {
       const res = await adminAPI.list();
       if (res.data.success) setAdmins(res.data.data);
     } catch {
       toast.error('Failed to fetch admins');
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (user) fetchAdmins();
-  }, [user]);
+  }, [user, fetchAdmins]);
 
   const handleToggleActive = async (admin: User) => {
     const newStatus = admin.isActive === false ? true : false;

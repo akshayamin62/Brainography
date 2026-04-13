@@ -10,17 +10,27 @@ export const listStudents = async (req: AuthRequest, res: Response): Promise<Res
     const userRole = req.user?.role;
     const userId = req.user?.userId;
 
-    let filter = {};
+    // Pagination
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const skip = (page - 1) * limit;
+
+    let filter: Record<string, any> = {};
     if (userRole === "ADMIN") {
       filter = { adminId: userId };
     } else if (userRole === "COUNSELOR") {
       filter = { counselorId: userId };
     }
 
-    const students = await Student.find(filter)
-      .populate("adminId", "name email")
-      .populate("counselorId", "name email")
-      .sort({ createdAt: -1 });
+    const [students, total] = await Promise.all([
+      Student.find(filter)
+        .populate("adminId", "name email")
+        .populate("counselorId", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Student.countDocuments(filter),
+    ]);
 
     // Get document status for all students
     const studentIds = students.map(s => s._id);
@@ -33,7 +43,7 @@ export const listStudents = async (req: AuthRequest, res: Response): Promise<Res
       return obj;
     });
 
-    return res.json({ success: true, data: studentsWithDocs });
+    return res.json({ success: true, data: studentsWithDocs, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   } catch (err) {
     console.error("List students error:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });
@@ -94,6 +104,12 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
       return res.status(400).json({ success: false, message: "All required fields must be provided" });
     }
 
+    // BUG-040: Check for duplicate student email
+    const existingStudent = await Student.findOne({ email: email.toLowerCase().trim() });
+    if (existingStudent) {
+      return res.status(409).json({ success: false, message: "A student with this email already exists" });
+    }
+
     // Determine the admin owner
     let assignedAdminId = userId; // Default: current user (admin)
     let assignedCounselorId = undefined;
@@ -140,7 +156,7 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<Re
         counselorId: assignedCounselorId || undefined,
         reportNo,
         firstName, middleName: middleName || "", lastName,
-        dob, gender, countryCode: countryCode || "+91", mobile, email,
+        dob, gender, countryCode: countryCode || "+91", mobile, email: email.toLowerCase().trim(),
         educationLevel, board: board || "", boardFullName: boardFullName || "",
         institutionName, institutionCountry, fieldOfStudy: fieldOfStudy || "", mediumOfTeaching,
         address, country, state, city,

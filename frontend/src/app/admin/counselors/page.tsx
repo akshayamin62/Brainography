@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Country } from 'country-state-city';
 import Navbar from '@/components/Navbar';
 import AdminLayout from '@/components/AdminLayout';
@@ -41,18 +41,18 @@ export default function AdminCounselorsPage() {
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const fetchCounselors = async () => {
+  const fetchCounselors = useCallback(async () => {
     try {
       const res = await counselorAPI.list();
       if (res.data.success) setCounselors(res.data.data);
     } catch {
       toast.error('Failed to fetch counselors');
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (user) fetchCounselors();
-  }, [user]);
+  }, [user, fetchCounselors]);
 
   const resetForm = () => {
     setFFirstName('');

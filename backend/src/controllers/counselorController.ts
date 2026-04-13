@@ -118,8 +118,12 @@ export const updateCounselor = async (req: AuthRequest, res: Response): Promise<
     }
 
     if (firstName || lastName) {
-      const name = [firstName, middleName, lastName].filter(Boolean).join(" ");
-      counselor.name = name;
+      // Merge with existing name parts to avoid dropping fields
+      const existingParts = counselor.name.split(' ');
+      const fn = firstName || existingParts[0] || '';
+      const mn = middleName !== undefined ? middleName : (existingParts.length > 2 ? existingParts.slice(1, -1).join(' ') : '');
+      const ln = lastName || existingParts[existingParts.length - 1] || '';
+      counselor.name = [fn, mn, ln].filter(Boolean).join(' ');
     }
     if (phone !== undefined) counselor.phone = phone;
     if (isActive !== undefined) counselor.isActive = isActive;

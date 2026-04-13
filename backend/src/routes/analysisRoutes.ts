@@ -12,14 +12,14 @@ const router = Router();
 router.get(
   "/:studentId",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   getAnalysis
 );
 
 router.post(
   "/:studentId",
   authenticate,
-  authorize(USER_ROLE.SUPER_ADMIN),
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   saveAnalysis
 );
 

@@ -8,10 +8,14 @@ import archiver from "archiver";
 
 const FINGERPRINTS_DIR = path.join(__dirname, "../../uploads/fingerprints");
 
-// Ensure directory exists
-if (!fs.existsSync(FINGERPRINTS_DIR)) {
-  fs.mkdirSync(FINGERPRINTS_DIR, { recursive: true });
-}
+// Ensure directory exists (async IIFE)
+(async () => {
+  try {
+    await fs.promises.access(FINGERPRINTS_DIR);
+  } catch {
+    await fs.promises.mkdir(FINGERPRINTS_DIR, { recursive: true });
+  }
+})();
 
 // GET /api/fingerprints/:studentId - Get all fingerprints for a student
 export const getFingerprints = async (req: AuthRequest, res: Response): Promise<Response> => {
@@ -35,12 +39,14 @@ export const getFingerprints = async (req: AuthRequest, res: Response): Promise<
     for (const fp of fingerprints) {
       const key = `${fp.fingerPosition}_${fp.fingerType}`;
       const filePath = path.join(FINGERPRINTS_DIR, fp.imagePath);
+      let fileExists = false;
+      try { await fs.promises.access(filePath); fileExists = true; } catch { /* not found */ }
       data[key] = {
         id: fp._id,
         fingerPosition: fp.fingerPosition,
         fingerType: fp.fingerType,
         filename: fp.imagePath,
-        fileExists: fs.existsSync(filePath),
+        fileExists,
         createdAt: fp.createdAt,
       };
     }
@@ -66,13 +72,23 @@ export const uploadFingerprint = async (req: AuthRequest, res: Response): Promis
       return res.status(404).json({ success: false, message: "Student not found" });
     }
 
+    // Ownership check
+    const userRole = req.user?.role;
+    const userId = req.user?.userId;
+    if (userRole === "ADMIN" && student.adminId?.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+    if (userRole === "COUNSELOR" && student.counselorId?.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
     // Decode base64 image
     const imgBuffer = Buffer.from(imageData, "base64");
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const filename = `fp_${studentId}_${fingerPosition}_${fingerType}_${timestamp}.png`;
     const filePath = path.join(FINGERPRINTS_DIR, filename);
 
-    fs.writeFileSync(filePath, imgBuffer);
+    await fs.promises.writeFile(filePath, imgBuffer);
 
     // Upsert fingerprint record
     const existing = await Fingerprint.findOne({ studentId, fingerPosition, fingerType });
@@ -80,9 +96,7 @@ export const uploadFingerprint = async (req: AuthRequest, res: Response): Promis
     if (existing) {
       // Delete old file
       const oldPath = path.join(FINGERPRINTS_DIR, existing.imagePath);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
+      try { await fs.promises.unlink(oldPath); } catch { /* file may not exist */ }
       existing.imagePath = filename;
       await existing.save();
     } else {
@@ -104,7 +118,7 @@ export const uploadFingerprint = async (req: AuthRequest, res: Response): Promis
 export const saveFingerprint = async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const { studentId, fingerPosition, fingerType } = req.body;
-    const file = (req as any).file;
+    const file = req.file;
 
     if (!studentId || !fingerPosition || !fingerType || !file) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -115,6 +129,16 @@ export const saveFingerprint = async (req: AuthRequest, res: Response): Promise<
       return res.status(404).json({ success: false, message: "Student not found" });
     }
 
+    // Ownership check
+    const userRole = req.user?.role;
+    const userId = req.user?.userId;
+    if (userRole === "ADMIN" && student.adminId?.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+    if (userRole === "COUNSELOR" && student.counselorId?.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
     const filename = file.filename;
 
     // Upsert fingerprint record
@@ -122,9 +146,7 @@ export const saveFingerprint = async (req: AuthRequest, res: Response): Promise<
 
     if (existing) {
       const oldPath = path.join(FINGERPRINTS_DIR, existing.imagePath);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
+      try { await fs.promises.unlink(oldPath); } catch { /* file may not exist */ }
       existing.imagePath = filename;
       await existing.save();
     } else {
@@ -152,10 +174,21 @@ export const deleteFingerprint = async (req: AuthRequest, res: Response): Promis
       return res.status(404).json({ success: false, message: "Fingerprint not found" });
     }
 
-    const filePath = path.join(FINGERPRINTS_DIR, fp.imagePath);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    // Ownership check
+    const student = await Student.findById(fp.studentId);
+    if (student) {
+      const userRole = req.user?.role;
+      const userId = req.user?.userId;
+      if (userRole === "ADMIN" && student.adminId?.toString() !== userId) {
+        return res.status(403).json({ success: false, message: "Access denied" });
+      }
+      if (userRole === "COUNSELOR" && student.counselorId?.toString() !== userId) {
+        return res.status(403).json({ success: false, message: "Access denied" });
+      }
     }
+
+    const filePath = path.join(FINGERPRINTS_DIR, fp.imagePath);
+    try { await fs.promises.unlink(filePath); } catch { /* file may not exist */ }
 
     await Fingerprint.findByIdAndDelete(id);
 
@@ -196,9 +229,10 @@ export const downloadFingerprints = async (req: AuthRequest, res: Response): Pro
     // Add fingerprint images
     for (const fp of fingerprints) {
       const filePath = path.join(FINGERPRINTS_DIR, fp.imagePath);
-      if (fs.existsSync(filePath)) {
+      try {
+        await fs.promises.access(filePath);
         archive.file(filePath, { name: `fingerprints/${fp.fingerPosition}_${fp.fingerType}.png` });
-      }
+      } catch { /* file may not exist */ }
     }
 
     await archive.finalize();
