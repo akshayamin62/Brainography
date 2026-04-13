@@ -154,7 +154,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="Brainography" className="h-20 w-auto object-contain" />
+            <img src="/thumbnail.png" alt="Brainography" className="h-20 w-auto object-contain" />
           </div>
           <h2 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome Back
