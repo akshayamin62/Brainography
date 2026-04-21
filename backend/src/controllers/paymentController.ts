@@ -6,9 +6,9 @@ import crypto from "crypto";
 import { sendEmail } from "../utils/email";
 import Razorpay from "razorpay";
 import { generateInvoicePDF } from "../services/invoiceService";
+import { getAppSettings } from "./settingsController";
 
 const LINK_VALIDITY_MINUTES = 15;
-const PAYMENT_AMOUNT = parseInt(process.env.PAYMENT_AMOUNT || "100", 10); // Amount in INR
 const PAYMENT_CURRENCY = process.env.PAYMENT_CURRENCY || "INR";
 
 const getRazorpayInstance = () => {
@@ -140,8 +140,11 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
     // Add 5 extra minutes as buffer to account for clock skew / network latency.
     const razorpayExpiresAt = new Date(now.getTime() + (LINK_VALIDITY_MINUTES + 5) * 60 * 1000);
 
+    const { baseAmount: PAYMENT_AMOUNT, gstEnabled } = await getAppSettings();
+    const totalAmount = gstEnabled ? Math.round(PAYMENT_AMOUNT * 1.18) : PAYMENT_AMOUNT;
+
     const paymentLink = await (razorpay.paymentLink as any).create({
-      amount: PAYMENT_AMOUNT * 100, // Razorpay accepts amount in paise
+      amount: totalAmount * 100, // Razorpay accepts amount in paise
       currency: PAYMENT_CURRENCY,
       accept_partial: false,
       description: `Payment for Brainography - ${student.firstName} ${student.lastName}`,
@@ -173,7 +176,7 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
       initiatedBy: userId,
       initiatedByRole: userRole,
       razorpayLinkId: paymentLink.id,
-      amount: PAYMENT_AMOUNT,
+      amount: totalAmount,
       currency: PAYMENT_CURRENCY,
       status: "pending",
       linkGeneratedAt: now,
@@ -344,6 +347,7 @@ export const razorpayWebhook = async (req: Request, res: Response): Promise<Resp
           try {
             const student = await Student.findById(payment.studentId);
             if (student?.email) {
+              const { gstEnabled: webhookGstEnabled } = await getAppSettings();
               const pdfBuffer = await generateInvoicePDF({
                 student: {
                   name: `${student.firstName} ${student.lastName}`,
@@ -361,6 +365,7 @@ export const razorpayWebhook = async (req: Request, res: Response): Promise<Resp
                   razorpayPaymentId: payment.razorpayPaymentId,
                   paidAt: payment.paidAt!,
                 },
+                gstEnabled: webhookGstEnabled,
               });
               await sendEmail({
                 to: student.email,
@@ -507,6 +512,7 @@ export const downloadInvoice = async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
+    const { gstEnabled: downloadGstEnabled } = await getAppSettings();
     const pdfBuffer = await generateInvoicePDF({
       student: {
         name: `${student.firstName} ${student.lastName}`,
@@ -524,6 +530,7 @@ export const downloadInvoice = async (req: AuthRequest, res: Response): Promise<
         razorpayPaymentId: payment.razorpayPaymentId,
         paidAt: payment.paidAt!,
       },
+      gstEnabled: downloadGstEnabled,
     });
 
     res.set({
@@ -549,6 +556,7 @@ export const sendInvoiceToStudent = async (req: AuthRequest, res: Response): Pro
     const student = await Student.findById(payment.studentId);
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
+    const { gstEnabled: sendGstEnabled } = await getAppSettings();
     const pdfBuffer = await generateInvoicePDF({
       student: {
         name: `${student.firstName} ${student.lastName}`,
@@ -566,6 +574,7 @@ export const sendInvoiceToStudent = async (req: AuthRequest, res: Response): Pro
         razorpayPaymentId: payment.razorpayPaymentId,
         paidAt: payment.paidAt!,
       },
+      gstEnabled: sendGstEnabled,
     });
 
     await sendEmail({

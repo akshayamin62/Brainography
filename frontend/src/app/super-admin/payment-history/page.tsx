@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import SuperAdminLayout from '@/components/SuperAdminLayout';
+import Navbar from '@/components/Navbar';
 import { useAuth } from '@/hooks/useAuth';
 import { paymentAPI } from '@/lib/api';
 import { PaymentLog } from '@/types';
@@ -75,7 +76,9 @@ export default function SuperAdminPaymentHistoryPage() {
   if (!user) return null;
 
   return (
-    <SuperAdminLayout user={user}>
+    <>
+      <Navbar />
+      <SuperAdminLayout user={user}>
       <div className="p-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Payment History</h1>
 
@@ -154,5 +157,6 @@ export default function SuperAdminPaymentHistoryPage() {
         )}
       </div>
     </SuperAdminLayout>
+    </>
   );
 }

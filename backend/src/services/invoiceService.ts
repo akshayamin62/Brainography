@@ -1,4 +1,7 @@
-import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from "pdf-lib";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { jsPDF } = require("jspdf");
+import * as fs from "fs";
+import * as path from "path";
 
 export interface InvoiceStudentData {
   name: string;
@@ -21,30 +24,18 @@ export interface InvoicePaymentData {
 export interface InvoiceData {
   student: InvoiceStudentData;
   payment: InvoicePaymentData;
+  gstEnabled: boolean;
 }
 
-// Sanitize text to WinAnsiEncoding (supported by pdf-lib StandardFonts)
-function san(text: string): string {
-  return (text || "")
-    .split("")
-    .map((ch) => {
-      const code = ch.charCodeAt(0);
-      if (code >= 0x20 && code <= 0x7e) return ch;
-      return " ";
-    })
-    .join("");
-}
-
-function numberToWords(num: number): string {
-  if (num === 0) return "Zero";
+function numberToWords(amount: number): string {
   const ones = [
-    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
-    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
-    "Seventeen", "Eighteen", "Nineteen",
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen",
   ];
   const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
 
   function convert(n: number): string {
+    if (n === 0) return "";
     if (n < 20) return ones[n];
     if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
     if (n < 1000) return ones[Math.floor(n / 100)] + " Hundred" + (n % 100 ? " " + convert(n % 100) : "");
@@ -53,206 +44,367 @@ function numberToWords(num: number): string {
     return convert(Math.floor(n / 10000000)) + " Crore" + (n % 10000000 ? " " + convert(n % 10000000) : "");
   }
 
-  const rupees = Math.floor(num);
-  const paise = Math.round((num - rupees) * 100);
-  let result = convert(rupees) + " Rupees";
+  const rupees = Math.floor(amount);
+  const paise = Math.round((amount - rupees) * 100);
+  let result = convert(rupees) || "Zero";
+  result += " Rupees";
   if (paise > 0) result += " and " + convert(paise) + " Paise";
   return result + " Only";
 }
 
-// Helper to draw a filled rectangle
-function fillRect(page: PDFPage, x: number, y: number, w: number, h: number, r: number, g: number, b: number) {
-  page.drawRectangle({ x, y, width: w, height: h, color: rgb(r / 255, g / 255, b / 255) });
-}
-
-// Helper to draw a stroked rectangle
-function strokeRect(page: PDFPage, x: number, y: number, w: number, h: number, r: number, g: number, b: number, thickness = 0.5) {
-  page.drawRectangle({ x, y, width: w, height: h, borderColor: rgb(r / 255, g / 255, b / 255), borderWidth: thickness });
-}
-
-// Helper to draw a line
-function drawLine(page: PDFPage, x1: number, y1: number, x2: number, y2: number, r: number, g: number, b: number, thickness = 0.5) {
-  page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, color: rgb(r / 255, g / 255, b / 255), thickness });
-}
-
-// Helper to draw text
-function drawText(page: PDFPage, text: string, x: number, y: number, font: PDFFont, size: number, r: number, g: number, b: number) {
-  page.drawText(san(text), { x, y, size, font, color: rgb(r / 255, g / 255, b / 255) });
+let _logoBase64: string | null = null;
+function getLogoBase64(): string {
+  if (_logoBase64 === null) {
+    const logoPath = path.resolve(__dirname, "../../../frontend/public/logo.png");
+    if (fs.existsSync(logoPath)) {
+      _logoBase64 = `data:image/png;base64,${fs.readFileSync(logoPath).toString("base64")}`;
+    } else {
+      _logoBase64 = "";
+    }
+  }
+  return _logoBase64;
 }
 
 export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
-  const { student, payment } = data;
+  const { student, payment, gstEnabled } = data;
 
-  // A4: 595.28 x 841.89 pt
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595.28, 841.89]);
-  const { width, height } = page.getSize();
+  const doc = new jsPDF("p", "mm", "a4");
+  const W = 210;
+  const margin = 15;
+  const contentW = W - 2 * margin;
 
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const fontNormal = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const date = new Date(payment.paidAt);
+  const dateStr = date.toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const invoiceNo = `IMPACT/${payment._id.slice(-6).toUpperCase()}/${date.getFullYear()}-${String(date.getFullYear() + 1).slice(-2)}`;
 
-  const margin = 42; // ~15mm
-  const contentW = width - 2 * margin;
+  const isGujarat = (student.state || "").toLowerCase().includes("gujarat");
+  const discountAmount = 0;
 
-  const paidAt = new Date(payment.paidAt);
-  const dateStr = paidAt.toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const invoiceNo = `ADM/${payment._id.slice(-6).toUpperCase()}/${paidAt.getFullYear()}-${String(paidAt.getFullYear() + 1).slice(-2)}`;
-  const amountFormatted = `Rs. ${payment.amount.toFixed(2)}`;
+  let baseAmount: number;
+  let gstAmount: number;
+  let cgst = 0, sgst = 0, igst = 0;
 
-  // pdf-lib Y is from bottom; we track current Y from top
-  let curY = height; // will subtract as we go
-
-  // ── HEADER ──────────────────────────────────────────────────────────────────
-  const headerH = 60;
-  fillRect(page, 0, height - headerH, width, headerH, 255, 255, 255);
-  // Bottom border of header
-  drawLine(page, 0, height - headerH, width, height - headerH, 26, 35, 75, 1);
-
-  // Title
-  drawText(page, "INVOICE CUM RECEIPT", margin, height - 28, fontBold, 18, 26, 35, 75);
-  drawText(page, `Invoice No: ${invoiceNo}`, margin, height - 42, fontNormal, 9, 55, 65, 81);
-  drawText(page, `Date: ${dateStr}`, margin, height - 52, fontNormal, 9, 55, 65, 81);
-
-  // Company name on right
-  drawText(page, "IMPACT", width - margin - 60, height - 32, fontBold, 18, 26, 35, 75);
-  drawText(page, "Potential Intelligence Assessment", width - margin - 60, height - 43, fontNormal, 7, 55, 65, 81);
-
-  curY = height - headerH - 12;
-
-  // ── BILL TO / BILL BY ────────────────────────────────────────────────────────
-  const colW = (contentW / 2) - 5;
-  const boxH = 80;
-
-  // Bill To box
-  fillRect(page, margin, curY - boxH, colW, boxH, 245, 247, 250);
-  strokeRect(page, margin, curY - boxH, colW, boxH, 200, 200, 200, 0.3);
-  drawText(page, "BILL TO", margin + 6, curY - 12, fontBold, 8, 37, 99, 235);
-  drawText(page, san(student.name), margin + 6, curY - 24, fontBold, 10, 26, 35, 75);
-
-  let billToY = curY - 36;
-  const cityState = [student.city, student.state, student.country].filter(Boolean).join(", ");
-  if (cityState) { drawText(page, san(cityState), margin + 6, billToY, fontNormal, 8, 55, 65, 81); billToY -= 11; }
-  drawText(page, san(student.email), margin + 6, billToY, fontNormal, 8, 55, 65, 81); billToY -= 11;
-  if (student.mobile) {
-    const phone = `${student.countryCode || "+91"} ${student.mobile}`.replace(/[^\d+ ]/g, "");
-    drawText(page, phone, margin + 6, billToY, fontNormal, 8, 55, 65, 81);
+  if (gstEnabled) {
+    baseAmount = Math.round((payment.amount / 1.18) * 100) / 100;
+    gstAmount = Math.round((payment.amount - baseAmount) * 100) / 100;
+    if (isGujarat) {
+      cgst = Math.round((gstAmount / 2) * 100) / 100;
+      sgst = Math.round((gstAmount - cgst) * 100) / 100;
+    } else {
+      igst = gstAmount;
+    }
+  } else {
+    baseAmount = payment.amount;
+    gstAmount = 0;
   }
 
-  // Bill By box
+  const subTotal = baseAmount - discountAmount;
+  const finalAmount = payment.amount;
+
+  const navy: [number, number, number] = [26, 35, 75];
+  const darkGray: [number, number, number] = [55, 65, 81];
+  const lightGray: [number, number, number] = [156, 163, 175];
+  const accentBlue: [number, number, number] = [37, 99, 235];
+
+  let y = margin;
+
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, W, 42, "F");
+  doc.setDrawColor(navy[0], navy[1], navy[2]);
+  doc.setLineWidth(0.5);
+  doc.line(0, 42, W, 42);
+
+  doc.setTextColor(navy[0], navy[1], navy[2]);
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
+  doc.text("INVOICE CUM RECEIPT", margin, 20);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+  doc.text(`Invoice No: ${invoiceNo}`, margin, 30);
+  doc.text(`Date: ${dateStr}`, margin, 36);
+
+  const logoBase64 = getLogoBase64();
+  if (logoBase64) {
+    try { doc.addImage(logoBase64, "PNG", W - margin - 50, 12, 50, 22); } catch (_e) { /* skip */ }
+  } else {
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.text("IMPACT", W - margin - 30, 24);
+  }
+
+  y = 52;
+
+  const colW = contentW / 2 - 5;
+  const billBoxH = 58;
+
+  doc.setFillColor(245, 247, 250);
+  doc.roundedRect(margin, y, colW, billBoxH, 3, 3, "F");
+  doc.setTextColor(accentBlue[0], accentBlue[1], accentBlue[2]);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text("BILL TO", margin + 6, y + 8);
+
+  doc.setTextColor(navy[0], navy[1], navy[2]);
+  doc.setFontSize(10);
+  doc.text(student.name, margin + 6, y + 16);
+
+  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  let billToY = y + 23;
+  const cityState = [student.city, student.state, student.country].filter(Boolean).join(", ");
+  if (cityState) { doc.text(cityState, margin + 6, billToY); billToY += 6; }
+  if (student.email) { doc.text(student.email, margin + 6, billToY); billToY += 6; }
+  if (student.mobile) { doc.text(`+91 ${student.mobile}`, margin + 6, billToY); }
+
   const billByX = margin + colW + 10;
-  fillRect(page, billByX, curY - boxH, colW, boxH, 245, 247, 250);
-  strokeRect(page, billByX, curY - boxH, colW, boxH, 200, 200, 200, 0.3);
-  drawText(page, "BILL BY", billByX + 6, curY - 12, fontBold, 8, 37, 99, 235);
-  drawText(page, "ADMITra", billByX + 6, curY - 24, fontBold, 10, 26, 35, 75);
-  drawText(page, "Suite #303, Rajshree Center, Opp. Hotel Effotel,", billByX + 6, curY - 36, fontNormal, 7.5, 55, 65, 81);
-  drawText(page, "Near Kalaghoda, Sayajigunj, Vadodara - 390020", billByX + 6, curY - 46, fontNormal, 7.5, 55, 65, 81);
-  drawText(page, "Gujarat, India", billByX + 6, curY - 56, fontNormal, 7.5, 55, 65, 81);
-  drawText(page, "hello@admitra.io | +91 7777 07 1711", billByX + 6, curY - 66, fontNormal, 7.5, 55, 65, 81);
-  drawText(page, "PAN: AAZFK7452R", billByX + 6, curY - 76, fontNormal, 7.5, 55, 65, 81);
+  doc.setFillColor(245, 247, 250);
+  doc.roundedRect(billByX, y, colW, billBoxH, 3, 3, "F");
+  doc.setTextColor(accentBlue[0], accentBlue[1], accentBlue[2]);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text("BILL BY", billByX + 6, y + 8);
 
-  curY -= (boxH + 14);
+  doc.setTextColor(navy[0], navy[1], navy[2]);
+  doc.setFontSize(10);
+  doc.text("IMPACT", billByX + 6, y + 16);
 
-  // ── ITEMS TABLE ──────────────────────────────────────────────────────────────
-  const col1W = 160; // Item
-  const col2W = 45;  // Unit
-  const col3W = 70;  // Rate
-  const rowH = 22;
+  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text("Fingerprint Intelligence Assessment", billByX + 6, y + 23);
+  doc.text("India", billByX + 6, y + 29);
+  doc.text("contact@impactassessment.in", billByX + 6, y + 35);
+  doc.text("PAN: XXXXXXXXXX", billByX + 6, y + 41);
+  doc.text("GST No: XXXXXXXXXXXXXX", billByX + 6, y + 47);
 
-  // Header row
-  fillRect(page, margin, curY - rowH, contentW, rowH, 26, 35, 75);
-  drawText(page, "Item", margin + 6, curY - 15, fontBold, 9, 255, 255, 255);
-  let cx = margin + col1W;
-  drawLine(page, cx, curY, cx, curY - rowH, 255, 255, 255, 0.3);
-  drawText(page, "Unit", cx + 6, curY - 15, fontBold, 9, 255, 255, 255);
+  y += billBoxH + 8;
+
+  const col1W = 70;
+  const col2W = 20;
+  const col3W = 30;
+  const col4W = 30;
+  const rowH = 10;
+
+  doc.setFillColor(navy[0], navy[1], navy[2]);
+  doc.rect(margin, y, contentW, rowH, "F");
+  doc.setDrawColor(navy[0], navy[1], navy[2]);
+  doc.setLineWidth(0.3);
+  doc.rect(margin, y, contentW, rowH, "S");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+
+  let cx = margin;
+  doc.text("Item", cx + 4, y + 7);
+  cx += col1W;
+  doc.line(cx, y, cx, y + rowH);
+  doc.text("Unit", cx + 4, y + 7);
   cx += col2W;
-  drawLine(page, cx, curY, cx, curY - rowH, 255, 255, 255, 0.3);
-  drawText(page, "Rate (Rs.)", cx + 6, curY - 15, fontBold, 9, 255, 255, 255);
+  doc.line(cx, y, cx, y + rowH);
+  doc.text("Rate", cx + 4, y + 7);
   cx += col3W;
-  drawLine(page, cx, curY, cx, curY - rowH, 255, 255, 255, 0.3);
-  drawText(page, "Sub Total (Rs.)", cx + 6, curY - 15, fontBold, 9, 255, 255, 255);
-  curY -= rowH;
+  doc.line(cx, y, cx, y + rowH);
+  doc.text("Discount", cx + 4, y + 7);
+  cx += col4W;
+  doc.line(cx, y, cx, y + rowH);
+  doc.text("Sub Total", cx + 4, y + 7);
 
-  // Data row
-  fillRect(page, margin, curY - rowH, contentW, rowH, 250, 251, 252);
-  strokeRect(page, margin, curY - rowH, contentW, rowH, 200, 200, 200, 0.2);
-  drawText(page, "IMPACT - Fingerprint Intelligence Assessment", margin + 6, curY - 15, fontNormal, 9, 26, 35, 75);
-  cx = margin + col1W;
-  drawLine(page, cx, curY, cx, curY - rowH, 200, 200, 200, 0.2);
-  drawText(page, "1", cx + 16, curY - 15, fontNormal, 9, 26, 35, 75);
+  y += rowH;
+
+  doc.setFillColor(250, 251, 252);
+  doc.rect(margin, y, contentW, rowH, "F");
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.2);
+  doc.rect(margin, y, contentW, rowH, "S");
+
+  doc.setTextColor(navy[0], navy[1], navy[2]);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+
+  cx = margin;
+  doc.text("IMPACT", cx + 4, y + 7);
+  cx += col1W;
+  doc.line(cx, y, cx, y + rowH);
+  doc.text("1", cx + 8, y + 7);
   cx += col2W;
-  drawLine(page, cx, curY, cx, curY - rowH, 200, 200, 200, 0.2);
-  drawText(page, payment.amount.toFixed(2), cx + 6, curY - 15, fontNormal, 9, 26, 35, 75);
+  doc.line(cx, y, cx, y + rowH);
+  doc.text(`${baseAmount.toFixed(2)}`, cx + 4, y + 7);
   cx += col3W;
-  drawLine(page, cx, curY, cx, curY - rowH, 200, 200, 200, 0.2);
-  drawText(page, payment.amount.toFixed(2), cx + 6, curY - 15, fontNormal, 9, 26, 35, 75);
-  curY -= (rowH + 6);
+  doc.line(cx, y, cx, y + rowH);
+  doc.text(`${discountAmount.toFixed(2)}`, cx + 4, y + 7);
+  cx += col4W;
+  doc.line(cx, y, cx, y + rowH);
+  doc.text(`${subTotal.toFixed(2)}`, cx + 4, y + 7);
 
-  // ── TOTALS TABLE ─────────────────────────────────────────────────────────────
-  const totW = 200;
-  const totX = margin + contentW - totW;
-  const lblW = 120;
-  const valW2 = totW - lblW;
-  const totRowH = 18;
+  y += rowH + 3;
 
-  // Sub Total row
-  strokeRect(page, totX, curY - totRowH, lblW, totRowH, 200, 200, 200, 0.3);
-  strokeRect(page, totX + lblW, curY - totRowH, valW2, totRowH, 200, 200, 200, 0.3);
-  drawText(page, "Sub Total Amount", totX + 4, curY - 13, fontNormal, 8.5, 55, 65, 81);
-  drawText(page, payment.amount.toFixed(2), totX + totW - 6 - fontNormal.widthOfTextAtSize(payment.amount.toFixed(2), 8.5), curY - 13, fontNormal, 8.5, 55, 65, 81);
-  curY -= totRowH;
+  const totalsTableX = margin + contentW - 80;
+  const totalsTableW = 80;
+  const labelW = 50;
+  const valW = totalsTableW - labelW;
+  const totRowH = 8;
 
-  // GST row (not applicable — 0)
-  strokeRect(page, totX, curY - totRowH, lblW, totRowH, 200, 200, 200, 0.3);
-  strokeRect(page, totX + lblW, curY - totRowH, valW2, totRowH, 200, 200, 200, 0.3);
-  drawText(page, "Tax / GST", totX + 4, curY - 13, fontNormal, 8.5, 55, 65, 81);
-  drawText(page, "0.00", totX + totW - 6 - fontNormal.widthOfTextAtSize("0.00", 8.5), curY - 13, fontNormal, 8.5, 55, 65, 81);
-  curY -= totRowH;
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.2);
+  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
 
-  // Total Amount row (dark)
-  const totalRowH = 22;
-  fillRect(page, totX, curY - totalRowH, totW, totalRowH, 26, 35, 75);
-  drawText(page, "Total Amount", totX + 4, curY - 15, fontBold, 9.5, 255, 255, 255);
-  drawText(page, amountFormatted, totX + totW - 6 - fontBold.widthOfTextAtSize(amountFormatted, 9.5), curY - 15, fontBold, 9.5, 255, 255, 255);
+  doc.rect(totalsTableX, y, labelW, totRowH, "S");
+  doc.rect(totalsTableX + labelW, y, valW, totRowH, "S");
+  doc.text("Total Discount", totalsTableX + 3, y + 5.5);
+  doc.text(`${discountAmount.toFixed(2)}`, totalsTableX + totalsTableW - 3, y + 5.5, { align: "right" });
+  y += totRowH;
 
-  // Amount in words (left side same row)
-  const amtWords = numberToWords(payment.amount);
-  drawText(page, `${amtWords}`, margin, curY - 15, fontNormal, 7.5, 100, 116, 139);
+  doc.rect(totalsTableX, y, labelW, totRowH, "S");
+  doc.rect(totalsTableX + labelW, y, valW, totRowH, "S");
+  doc.text("Sub Total Amount", totalsTableX + 3, y + 5.5);
+  doc.text(`${subTotal.toFixed(2)}`, totalsTableX + totalsTableW - 3, y + 5.5, { align: "right" });
+  y += totRowH;
 
-  curY -= (totalRowH + 14);
+  if (gstEnabled) {
+    if (isGujarat) {
+      doc.rect(totalsTableX, y, labelW, totRowH, "S");
+      doc.rect(totalsTableX + labelW, y, valW, totRowH, "S");
+      doc.text("CGST (9%)", totalsTableX + 3, y + 5.5);
+      doc.text(`${cgst.toFixed(2)}`, totalsTableX + totalsTableW - 3, y + 5.5, { align: "right" });
+      y += totRowH;
+      doc.rect(totalsTableX, y, labelW, totRowH, "S");
+      doc.rect(totalsTableX + labelW, y, valW, totRowH, "S");
+      doc.text("SGST (9%)", totalsTableX + 3, y + 5.5);
+      doc.text(`${sgst.toFixed(2)}`, totalsTableX + totalsTableW - 3, y + 5.5, { align: "right" });
+      y += totRowH;
+    } else {
+      doc.rect(totalsTableX, y, labelW, totRowH, "S");
+      doc.rect(totalsTableX + labelW, y, valW, totRowH, "S");
+      doc.text("IGST (18%)", totalsTableX + 3, y + 5.5);
+      doc.text(`${igst.toFixed(2)}`, totalsTableX + totalsTableW - 3, y + 5.5, { align: "right" });
+      y += totRowH;
+    }
+  } else {
+    for (const label of ["IGST", "CGST", "SGST"]) {
+      doc.rect(totalsTableX, y, labelW, totRowH, "S");
+      doc.rect(totalsTableX + labelW, y, valW, totRowH, "S");
+      doc.text(label, totalsTableX + 3, y + 5.5);
+      doc.text("0.00", totalsTableX + totalsTableW - 3, y + 5.5, { align: "right" });
+      y += totRowH;
+    }
+  }
 
-  // ── PAYMENT DETAILS ──────────────────────────────────────────────────────────
-  fillRect(page, margin, curY - 50, contentW, 50, 245, 247, 250);
-  strokeRect(page, margin, curY - 50, contentW, 50, 200, 200, 200, 0.3);
-  drawText(page, "PAYMENT DETAILS", margin + 6, curY - 12, fontBold, 8, 37, 99, 235);
-  drawText(page, "Beneficiary: ADMITra", margin + 6, curY - 24, fontNormal, 7.5, 55, 65, 81);
-  drawText(page, "Axis Bank Current Account | IFSC: UTIB0004011", margin + 6, curY - 34, fontNormal, 7.5, 55, 65, 81);
-  drawText(page, "UPI ID: 7777071711@okbizaxis", margin + 6, curY - 44, fontNormal, 7.5, 55, 65, 81);
+  doc.setFillColor(navy[0], navy[1], navy[2]);
+  doc.rect(totalsTableX, y, totalsTableW, totRowH + 2, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Total Amount", totalsTableX + 3, y + 6.5);
+  doc.text(`${finalAmount.toFixed(2)}`, totalsTableX + totalsTableW - 3, y + 6.5, { align: "right" });
+
+  doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.text(numberToWords(finalAmount), margin, y + 6.5);
+
+  y += totRowH + 12;
+
+  if (gstEnabled) {
+    const cols = isGujarat ? 3 : 2;
+    const gstColW = contentW / cols;
+    const gstRowH = 9;
+
+    doc.setFillColor(245, 247, 250);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    doc.rect(margin, y, contentW, gstRowH, "FD");
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Taxable Value", margin + 4, y + 6);
+    doc.line(margin + gstColW, y, margin + gstColW, y + gstRowH);
+    if (isGujarat) {
+      doc.text("CGST (9%)", margin + gstColW + 4, y + 6);
+      doc.line(margin + gstColW * 2, y, margin + gstColW * 2, y + gstRowH);
+      doc.text("SGST (9%)", margin + gstColW * 2 + 4, y + 6);
+    } else {
+      doc.text("IGST (18%)", margin + gstColW + 4, y + 6);
+    }
+    y += gstRowH;
+
+    doc.rect(margin, y, contentW, gstRowH, "S");
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+    doc.text(`${subTotal.toFixed(2)}`, margin + 4, y + 6);
+    doc.line(margin + gstColW, y, margin + gstColW, y + gstRowH);
+    if (isGujarat) {
+      doc.text(`${cgst.toFixed(2)}`, margin + gstColW + 4, y + 6);
+      doc.line(margin + gstColW * 2, y, margin + gstColW * 2, y + gstRowH);
+      doc.text(`${sgst.toFixed(2)}`, margin + gstColW * 2 + 4, y + 6);
+    } else {
+      doc.text(`${igst.toFixed(2)}`, margin + gstColW + 4, y + 6);
+    }
+    y += gstRowH + 6;
+  }
+
+  doc.setFillColor(245, 247, 250);
+  doc.roundedRect(margin, y, contentW, 32, 3, 3, "F");
+  doc.setTextColor(accentBlue[0], accentBlue[1], accentBlue[2]);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text("PAYMENT DETAILS", margin + 6, y + 8);
+
+  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.text("Beneficiary: IMPACT", margin + 6, y + 15);
+  doc.text("Payment Mode: Razorpay Payment Gateway", margin + 6, y + 21);
+  doc.text("Status: PAID", margin + 6, y + 27);
 
   if (payment.razorpayPaymentId) {
-    drawText(page, `Razorpay Payment ID: ${payment.razorpayPaymentId}`, margin + contentW / 2, curY - 24, fontNormal, 7.5, 55, 65, 81);
-    drawText(page, `Payment Date: ${dateStr}`, margin + contentW / 2, curY - 34, fontNormal, 7.5, 55, 65, 81);
-    drawText(page, `Status: PAID`, margin + contentW / 2, curY - 44, fontBold, 7.5, 16, 185, 129);
+    doc.text(`Razorpay ID: ${payment.razorpayPaymentId}`, margin + contentW - 65, y + 15);
   }
+  doc.text(`Payment Date: ${dateStr}`, margin + contentW - 65, y + 21);
 
-  curY -= 60;
+  y += 40;
 
-  // ── TERMS & CONDITIONS ────────────────────────────────────────────────────────
-  drawText(page, "TERMS & CONDITIONS", margin, curY - 10, fontBold, 8, 26, 35, 75);
-  drawText(page, "1. Fees once paid are not refundable.", margin, curY - 22, fontNormal, 7, 55, 65, 81);
-  drawText(page, "2. This invoice is system-generated and valid without a physical signature.", margin, curY - 32, fontNormal, 7, 55, 65, 81);
+  doc.setTextColor(navy[0], navy[1], navy[2]);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text("TERMS & CONDITIONS", margin, y);
+  y += 6;
+  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.text("1. Cheques subject to realization.", margin, y);
+  y += 5;
+  doc.text("2. Fees once paid are not refundable.", margin, y);
 
-  // ── FOOTER ───────────────────────────────────────────────────────────────────
-  const footerH = 24;
-  fillRect(page, 0, 0, width, footerH, 26, 35, 75);
-  const footerText = "ADMITra | Suite #303, Rajshree Center, Vadodara - 390020 | hello@admitra.io | +91 7777 07 1711";
-  const ftWidth = fontNormal.widthOfTextAtSize(footerText, 7);
-  drawText(page, footerText, (width - ftWidth) / 2, 8, fontNormal, 7, 200, 200, 200);
+  const footerY = 285;
+  const sigX = W - margin;
 
-  // ── SIGNATURE ────────────────────────────────────────────────────────────────
-  const sigY = 38;
-  drawText(page, "For ADMITra", width - margin - fontBold.widthOfTextAtSize("For ADMITra", 9), sigY + 12, fontBold, 9, 26, 35, 75);
-  drawText(page, "Authorized Signatory", width - margin - fontNormal.widthOfTextAtSize("Authorized Signatory", 7), sigY, fontNormal, 7, 100, 116, 139);
+  doc.setTextColor(navy[0], navy[1], navy[2]);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("For IMPACT", sigX, footerY - 22, { align: "right" });
+  doc.text("Authorized Signatory", sigX, footerY - 10, { align: "right" });
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+  doc.text("IMPACT Assessment Team", sigX, footerY - 5, { align: "right" });
 
-  const pdfBytes = await pdfDoc.save();
-  return Buffer.from(pdfBytes);
+  doc.setFillColor(navy[0], navy[1], navy[2]);
+  doc.rect(0, footerY, W, 12, "F");
+  doc.setTextColor(200, 200, 200);
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    "IMPACT Fingerprint Intelligence Assessment  |  contact@impactassessment.in",
+    W / 2, footerY + 7,
+    { align: "center" }
+  );
+
+  return Buffer.from(doc.output("arraybuffer") as ArrayBuffer);
 }

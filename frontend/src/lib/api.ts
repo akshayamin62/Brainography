@@ -126,5 +126,10 @@ export const paymentAPI = {
   sendInvoice: (paymentId: string) => api.post(`/payments/invoice/${paymentId}/send`),
 };
 
+export const settingsAPI = {
+  get: () => api.get('/settings'),
+  update: (data: { baseAmount?: number; gstEnabled?: boolean }) => api.put('/settings', data),
+};
+
 export default api;
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import CounselorLayout from '@/components/CounselorLayout';
+import Navbar from '@/components/Navbar';
 import { useAuth } from '@/hooks/useAuth';
 import { paymentAPI } from '@/lib/api';
 import { PaymentLog } from '@/types';
@@ -62,7 +63,9 @@ export default function CounselorPaymentHistoryPage() {
   if (!user) return null;
 
   return (
-    <CounselorLayout user={user}>
+    <>
+      <Navbar />
+      <CounselorLayout user={user}>
       <div className="p-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Payment History</h1>
 
@@ -129,5 +132,6 @@ export default function CounselorPaymentHistoryPage() {
         )}
       </div>
     </CounselorLayout>
+    </>
   );
 }

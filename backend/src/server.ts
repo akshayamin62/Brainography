@@ -16,6 +16,7 @@ import analysisRoutes from "./routes/analysisRoutes";
 import reportRoutes from "./routes/reportRoutes";
 import counselorRoutes from "./routes/counselorRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
+import settingsRoutes from "./routes/settingsRoutes";
 
 // Import models to register them with Mongoose
 import "./models/User";
@@ -89,6 +90,7 @@ app.use("/api/fingerprint-analysis", analysisRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/counselors", counselorRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // Basic test route
 app.get('/', (_req, res) => {

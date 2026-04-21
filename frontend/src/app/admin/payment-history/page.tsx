@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
+import Navbar from '@/components/Navbar';
 import { useAuth } from '@/hooks/useAuth';
 import { paymentAPI } from '@/lib/api';
 import { PaymentLog } from '@/types';
@@ -75,7 +76,9 @@ export default function AdminPaymentHistoryPage() {
   if (!user) return null;
 
   return (
-    <AdminLayout user={user}>
+    <>
+      <Navbar />
+      <AdminLayout user={user}>
       <div className="p-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Payment History</h1>
 
@@ -154,5 +157,6 @@ export default function AdminPaymentHistoryPage() {
         )}
       </div>
     </AdminLayout>
+    </>
   );
 }
