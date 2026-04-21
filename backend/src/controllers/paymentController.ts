@@ -47,6 +47,53 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
     if (existingPending) {
       const remainingMs = existingPending.linkExpiresAt.getTime() - now.getTime();
       const remainingSec = Math.ceil(remainingMs / 1000);
+
+      // If the existing pending link has a valid Razorpay URL, resend the email
+      // instead of blocking — this handles the case where the previous attempt
+      // created the link but failed to send the email (causing a false 500).
+      if (existingPending.paymentLinkUrl) {
+        let emailSent = true;
+        try {
+          await sendEmail({
+            to: student.email,
+            subject: "Payment Link - Brainography",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #2563eb;">Brainography - Payment Link</h2>
+                <p>Dear ${student.firstName} ${student.lastName},</p>
+                <p>A payment link has been generated for you. Please complete the payment using the link below:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${existingPending.paymentLinkUrl}"
+                     style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
+                    Pay ₹${existingPending.amount}
+                  </a>
+                </div>
+                <p style="color: #dc2626; font-weight: bold;">⚠️ This link will expire in ${Math.ceil(remainingSec / 60)} minute(s).</p>
+                <p>If you face any issues, please contact your counselor or admin.</p>
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+                <p style="color: #6b7280; font-size: 12px;">This is an automated email from Brainography. Please do not reply.</p>
+              </div>
+            `,
+          });
+        } catch (emailErr: any) {
+          emailSent = false;
+          console.error("⚠️ Re-send payment link email failed:", emailErr.message);
+        }
+        return res.json({
+          success: true,
+          message: emailSent
+            ? "Payment link already active — resent to student's email"
+            : "Payment link already active (email notification could not be sent)",
+          data: {
+            paymentId: existingPending._id,
+            linkExpiresAt: existingPending.linkExpiresAt,
+            remainingSeconds: remainingSec,
+            status: "pending",
+            emailSent,
+          },
+        });
+      }
+
       return res.status(400).json({
         success: false,
         message: `A payment link is already active. Please wait ${Math.ceil(remainingSec / 60)} minute(s) before generating a new one.`,
@@ -110,36 +157,45 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
     });
     await payment.save();
 
-    // Send payment link email to student
-    await sendEmail({
-      to: student.email,
-      subject: "Payment Link - Brainography",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Brainography - Payment Link</h2>
-          <p>Dear ${student.firstName} ${student.lastName},</p>
-          <p>A payment link has been generated for you. Please complete the payment using the link below:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${paymentLink.short_url || paymentLink.url}" 
-               style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
-              Pay ₹${PAYMENT_AMOUNT}
-            </a>
+    // Send payment link email to student (non-blocking — email failure should not fail the request)
+    let emailSent = true;
+    try {
+      await sendEmail({
+        to: student.email,
+        subject: "Payment Link - Brainography",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Brainography - Payment Link</h2>
+            <p>Dear ${student.firstName} ${student.lastName},</p>
+            <p>A payment link has been generated for you. Please complete the payment using the link below:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${paymentLink.short_url || paymentLink.url}" 
+                 style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
+                Pay ₹${PAYMENT_AMOUNT}
+              </a>
+            </div>
+            <p style="color: #dc2626; font-weight: bold;">⚠️ This link will expire in ${LINK_VALIDITY_MINUTES} minutes.</p>
+            <p>If you face any issues, please contact your counselor or admin.</p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+            <p style="color: #6b7280; font-size: 12px;">This is an automated email from Brainography. Please do not reply.</p>
           </div>
-          <p style="color: #dc2626; font-weight: bold;">⚠️ This link will expire in ${LINK_VALIDITY_MINUTES} minutes.</p>
-          <p>If you face any issues, please contact your counselor or admin.</p>
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-          <p style="color: #6b7280; font-size: 12px;">This is an automated email from Brainography. Please do not reply.</p>
-        </div>
-      `,
-    });
+        `,
+      });
+    } catch (emailErr: any) {
+      emailSent = false;
+      console.error("⚠️ Payment link created but email notification failed:", emailErr.message);
+    }
 
     return res.json({
       success: true,
-      message: "Payment link generated and sent to student's email",
+      message: emailSent
+        ? "Payment link generated and sent to student's email"
+        : "Payment link generated successfully (email notification could not be sent)",
       data: {
         paymentId: payment._id,
         linkExpiresAt: expiresAt,
         status: "pending",
+        emailSent,
       },
     });
   } catch (err: any) {
