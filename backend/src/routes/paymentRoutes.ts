@@ -9,6 +9,8 @@ import {
   razorpayWebhook,
   verifyPayment,
   getAllPaymentLogs,
+  downloadInvoice,
+  sendInvoiceToStudent,
 } from "../controllers/paymentController";
 
 const router = Router();
@@ -45,5 +47,19 @@ router.get(
 // Public routes (no auth needed)
 router.post("/webhook", razorpayWebhook);
 router.get("/verify-payment", verifyPayment);
+
+// Invoice routes
+router.get(
+  "/invoice/:paymentId/download",
+  authenticate,
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
+  downloadInvoice
+);
+router.post(
+  "/invoice/:paymentId/send",
+  authenticate,
+  authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN),
+  sendInvoiceToStudent
+);
 
 export default router;

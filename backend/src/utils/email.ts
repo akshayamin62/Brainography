@@ -4,11 +4,18 @@
 
 import nodemailer from "nodemailer";
 
+interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}
+
 interface EmailOptions {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -57,6 +64,7 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
       subject: options.subject,
       html: options.html,
       text: options.text,
+      attachments: options.attachments,
     });
     
     console.log(`✅ Email sent successfully to ${options.to}`);

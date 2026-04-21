@@ -122,6 +122,8 @@ export const paymentAPI = {
   getLogs: (studentId: string) => api.get(`/payments/logs/${studentId}`),
   getAllLogs: () => api.get('/payments/all-logs'),
   verifyPayment: (params: string) => axios.get(`${API_URL}/payments/verify-payment?${params}`),
+  downloadInvoice: (paymentId: string) => api.get(`/payments/invoice/${paymentId}/download`, { responseType: 'blob' }),
+  sendInvoice: (paymentId: string) => api.post(`/payments/invoice/${paymentId}/send`),
 };
 
 export default api;

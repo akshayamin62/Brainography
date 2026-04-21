@@ -5,6 +5,7 @@ import Student from "../models/Student";
 import crypto from "crypto";
 import { sendEmail } from "../utils/email";
 import Razorpay from "razorpay";
+import { generateInvoicePDF } from "../services/invoiceService";
 
 const LINK_VALIDITY_MINUTES = 15;
 const PAYMENT_AMOUNT = parseInt(process.env.PAYMENT_AMOUNT || "100", 10); // Amount in INR
@@ -83,12 +84,14 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
                 <p>A payment link has been generated for you. Please complete the payment using the link below:</p>
                 <div style="text-align: center; margin: 30px 0;">
                   <a href="${existingPending.paymentLinkUrl}"
-                     style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
-                    Pay ₹${existingPending.amount}
+                     style="display: inline-block; background-color: #ffffff; color: #000000; padding: 12px 28px; text-decoration: none; border: 2px solid #000000; border-radius: 4px; font-size: 16px; font-weight: 600;">
+                    Complete Payment
                   </a>
+                  <p style="margin-top: 12px; font-size: 13px; color: #555555;">If the button above doesn't work, copy and open this link in your browser:</p>
+                  <p style="font-size: 13px; word-break: break-all;"><a href="${existingPending.paymentLinkUrl}" style="color: #2563eb;">${existingPending.paymentLinkUrl}</a></p>
                 </div>
                 <p style="color: #dc2626; font-weight: bold;">⚠️ This link will expire in ${Math.ceil(remainingSec / 60)} minute(s).</p>
-                <p>If you face any issues, please contact your counselor or admin.</p>
+                <p>If you face any issues, please contact hello@admitra.io</p>
                 <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
                 <p style="color: #6b7280; font-size: 12px;">This is an automated email from Brainography. Please do not reply.</p>
               </div>
@@ -192,13 +195,15 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
             <p>Dear ${student.firstName} ${student.lastName},</p>
             <p>A payment link has been generated for you. Please complete the payment using the link below:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${paymentLink.short_url || paymentLink.url}" 
-                 style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
-                Pay ₹${PAYMENT_AMOUNT}
+              <a href="${paymentLink.short_url || paymentLink.url}"
+                 style="display: inline-block; background-color: #ffffff; color: #000000; padding: 12px 28px; text-decoration: none; border: 2px solid #000000; border-radius: 4px; font-size: 16px; font-weight: 600;">
+                Complete Payment
               </a>
+              <p style="margin-top: 12px; font-size: 13px; color: #555555;">If the button above doesn't work, copy and open this link in your browser:</p>
+              <p style="font-size: 13px; word-break: break-all;"><a href="${paymentLink.short_url || paymentLink.url}" style="color: #2563eb;">${paymentLink.short_url || paymentLink.url}</a></p>
             </div>
             <p style="color: #dc2626; font-weight: bold;">⚠️ This link will expire in ${LINK_VALIDITY_MINUTES} minutes.</p>
-            <p>If you face any issues, please contact your counselor or admin.</p>
+            <p>If you face any issues, please contact hello@admitra.io.</p>
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
             <p style="color: #6b7280; font-size: 12px;">This is an automated email from Brainography. Please do not reply.</p>
           </div>
@@ -334,6 +339,40 @@ export const razorpayWebhook = async (req: Request, res: Response): Promise<Resp
           payment.paidAt = new Date();
           await payment.save();
           console.log(`✅ Payment completed for student ${payment.studentId}`);
+
+          // Auto-send invoice to student (non-blocking)
+          try {
+            const student = await Student.findById(payment.studentId);
+            if (student?.email) {
+              const pdfBuffer = await generateInvoicePDF({
+                student: {
+                  name: `${student.firstName} ${student.lastName}`,
+                  email: student.email,
+                  mobile: student.mobile,
+                  countryCode: student.countryCode,
+                  city: student.city,
+                  state: student.state,
+                  country: student.country,
+                },
+                payment: {
+                  _id: (payment._id as any).toString(),
+                  amount: payment.amount,
+                  currency: payment.currency,
+                  razorpayPaymentId: payment.razorpayPaymentId,
+                  paidAt: payment.paidAt!,
+                },
+              });
+              await sendEmail({
+                to: student.email,
+                subject: "Payment Invoice – IMPACT Fingerprint Intelligence Assessment",
+                html: `<p>Dear ${student.firstName},</p><p>Thank you for your payment. Please find your invoice attached.</p><p>Regards,<br/>IMPACT Team</p>`,
+                attachments: [{ filename: `Invoice_${(payment._id as any).toString()}.pdf`, content: pdfBuffer, contentType: "application/pdf" }],
+              });
+              console.log(`📧 Invoice emailed to ${student.email}`);
+            }
+          } catch (invoiceErr) {
+            console.error("Failed to send invoice email:", invoiceErr);
+          }
         }
       }
     } else if (event === "payment_link.expired") {
@@ -448,3 +487,98 @@ export const getAllPaymentLogs = async (req: AuthRequest, res: Response): Promis
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+// GET /api/payments/invoice/:paymentId/download
+export const downloadInvoice = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { paymentId } = req.params;
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      res.status(404).json({ success: false, message: "Payment not found" });
+      return;
+    }
+    if (payment.status !== "paid") {
+      res.status(400).json({ success: false, message: "Invoice is only available for paid payments" });
+      return;
+    }
+    const student = await Student.findById(payment.studentId);
+    if (!student) {
+      res.status(404).json({ success: false, message: "Student not found" });
+      return;
+    }
+
+    const pdfBuffer = await generateInvoicePDF({
+      student: {
+        name: `${student.firstName} ${student.lastName}`,
+        email: student.email,
+        mobile: student.mobile,
+        countryCode: student.countryCode,
+        city: student.city,
+        state: student.state,
+        country: student.country,
+      },
+      payment: {
+        _id: (payment._id as any).toString(),
+        amount: payment.amount,
+        currency: payment.currency,
+        razorpayPaymentId: payment.razorpayPaymentId,
+        paidAt: payment.paidAt!,
+      },
+    });
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="Invoice_${(payment._id as any).toString()}.pdf"`,
+      "Content-Length": pdfBuffer.length,
+    });
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error("Download invoice error:", err);
+    res.status(500).json({ success: false, message: "Failed to generate invoice" });
+  }
+};
+
+// POST /api/payments/invoice/:paymentId/send
+export const sendInvoiceToStudent = async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { paymentId } = req.params;
+    const payment = await Payment.findById(paymentId);
+    if (!payment) return res.status(404).json({ success: false, message: "Payment not found" });
+    if (payment.status !== "paid") return res.status(400).json({ success: false, message: "Invoice is only available for paid payments" });
+
+    const student = await Student.findById(payment.studentId);
+    if (!student) return res.status(404).json({ success: false, message: "Student not found" });
+
+    const pdfBuffer = await generateInvoicePDF({
+      student: {
+        name: `${student.firstName} ${student.lastName}`,
+        email: student.email,
+        mobile: student.mobile,
+        countryCode: student.countryCode,
+        city: student.city,
+        state: student.state,
+        country: student.country,
+      },
+      payment: {
+        _id: (payment._id as any).toString(),
+        amount: payment.amount,
+        currency: payment.currency,
+        razorpayPaymentId: payment.razorpayPaymentId,
+        paidAt: payment.paidAt!,
+      },
+    });
+
+    await sendEmail({
+      to: student.email,
+      subject: "Payment Invoice – IMPACT Fingerprint Intelligence Assessment",
+      html: `<p>Dear ${student.firstName},</p><p>Please find your payment invoice attached.</p><p>Regards,<br/>IMPACT Team</p>`,
+      attachments: [{ filename: `Invoice_${(payment._id as any).toString()}.pdf`, content: pdfBuffer, contentType: "application/pdf" }],
+    });
+
+    return res.json({ success: true, message: "Invoice sent to student email" });
+  } catch (err) {
+    console.error("Send invoice error:", err);
+    return res.status(500).json({ success: false, message: "Failed to send invoice" });
+  }
+};
+
