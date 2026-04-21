@@ -14,9 +14,28 @@ const getRazorpayInstance = () => {
   const key_id = process.env.RAZORPAY_KEY_ID;
   const key_secret = process.env.RAZORPAY_KEY_SECRET;
   if (!key_id || !key_secret) {
-    throw new Error("Razorpay credentials not configured");
+    throw new Error("Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables.");
   }
   return new Razorpay({ key_id, key_secret });
+};
+
+// Extract a readable error message from Razorpay SDK errors or standard errors
+const extractErrorMessage = (err: any): string => {
+  // Razorpay SDK wraps API errors in err.error
+  if (err?.error?.description) return err.error.description;
+  if (err?.error?.reason) return err.error.reason;
+  if (err?.error?.code) return `Razorpay error: ${err.error.code}`;
+  // Standard Error
+  if (err?.message) return err.message;
+  // Razorpay HTTP errors
+  if (typeof err === "string") return err;
+  return "Internal server error";
+};
+
+// Sanitize phone number for Razorpay: must be digits only (no +, spaces, dashes)
+const sanitizePhone = (countryCode: string, mobile: string): string => {
+  const combined = `${countryCode}${mobile}`.replace(/[^\d]/g, "");
+  return combined;
 };
 
 // POST /api/payments/generate-link/:studentId
@@ -122,7 +141,7 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
       customer: {
         name: `${student.firstName} ${student.lastName}`,
         email: student.email,
-        contact: `${student.countryCode}${student.mobile}`,
+        contact: sanitizePhone(student.countryCode || "+91", student.mobile),
       },
       notify: {
         sms: false,
@@ -199,8 +218,8 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
       },
     });
   } catch (err: any) {
-    console.error("Generate payment link error:", err);
-    return res.status(500).json({ success: false, message: err.message || "Internal server error" });
+    console.error("Generate payment link error:", JSON.stringify(err?.error || err?.message || err));
+    return res.status(500).json({ success: false, message: extractErrorMessage(err) });
   }
 };
 

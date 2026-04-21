@@ -135,6 +135,14 @@ const startServer = async () => {
     if (!process.env.EMAIL_ADDRESS || !process.env.EMAIL_PASSWORD) {
       console.warn('⚠️  EMAIL_ADDRESS and/or EMAIL_PASSWORD not set. Emails will be logged to console only.');
     }
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.warn('⚠️  RAZORPAY_KEY_ID and/or RAZORPAY_KEY_SECRET not set. Payment link generation will fail.');
+    } else {
+      console.log('✅ Razorpay credentials configured.');
+    }
+    if (!process.env.RAZORPAY_WEBHOOK_SECRET) {
+      console.warn('⚠️  RAZORPAY_WEBHOOK_SECRET not set. Webhook signature verification will fail.');
+    }
 
     await mongoose.connect(process.env.MONGO_URI!, {
       serverSelectionTimeoutMS: 5000,
