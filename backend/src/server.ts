@@ -15,6 +15,7 @@ import documentRoutes from "./routes/documentRoutes";
 import analysisRoutes from "./routes/analysisRoutes";
 import reportRoutes from "./routes/reportRoutes";
 import counselorRoutes from "./routes/counselorRoutes";
+import paymentRoutes from "./routes/paymentRoutes";
 
 // Import models to register them with Mongoose
 import "./models/User";
@@ -23,6 +24,7 @@ import "./models/Fingerprint";
 import "./models/FingerprintAnalysis";
 import "./models/StudentDocument";
 import "./models/AdminDetail";
+import "./models/Payment";
 
 dotenv.config();
 
@@ -83,6 +85,7 @@ app.use("/api/documents", documentRoutes);
 app.use("/api/fingerprint-analysis", analysisRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/counselors", counselorRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // Basic test route
 app.get('/', (_req, res) => {

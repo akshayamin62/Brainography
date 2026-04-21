@@ -116,5 +116,13 @@ export const reportAPI = {
   generateUrl: (studentId: string) => `${API_URL}/reports/generate/${studentId}`,
 };
 
+export const paymentAPI = {
+  generateLink: (studentId: string) => api.post(`/payments/generate-link/${studentId}`),
+  getStatus: (studentId: string) => api.get(`/payments/status/${studentId}`),
+  getLogs: (studentId: string) => api.get(`/payments/logs/${studentId}`),
+  getAllLogs: () => api.get('/payments/all-logs'),
+  verifyPayment: (params: string) => axios.get(`${API_URL}/payments/verify-payment?${params}`),
+};
+
 export default api;
 

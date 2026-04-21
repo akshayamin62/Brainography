@@ -97,6 +97,37 @@ export interface StudentDoc {
   createdAt: string;
 }
 
+export interface PaymentStatus {
+  _id?: string;
+  status: 'none' | 'pending' | 'paid' | 'failed' | 'expired';
+  amount?: number;
+  currency?: string;
+  initiatedBy?: { name: string; email: string; role: string };
+  initiatedByRole?: string;
+  linkGeneratedAt?: string;
+  linkExpiresAt?: string;
+  paidAt?: string;
+  razorpayPaymentId?: string;
+  canGenerateLink: boolean;
+  isPending?: boolean;
+  remainingSeconds?: number;
+}
+
+export interface PaymentLog {
+  _id: string;
+  studentId: { firstName: string; lastName: string; email: string; reportNo: string; name: string } | string;
+  initiatedBy: { name: string; email: string; role: string } | string;
+  initiatedByRole: string;
+  amount: number;
+  currency: string;
+  status: string;
+  linkGeneratedAt: string;
+  linkExpiresAt: string;
+  paidAt?: string;
+  razorpayPaymentId?: string;
+  createdAt: string;
+}
+
 export interface AuthResponse {
   success: boolean;
   message: string;

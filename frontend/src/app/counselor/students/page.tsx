@@ -9,6 +9,7 @@ import { studentAPI, BACKEND_URL, withToken } from '@/lib/api';
 import { Student } from '@/types';
 import { Country, State, City } from 'country-state-city';
 import toast, { Toaster } from 'react-hot-toast';
+import PaymentButton from '@/components/PaymentButton';
 
 const EDUCATION_LEVELS = [
   { label: 'Secondary School', value: 'secondary_school' },
@@ -232,12 +233,13 @@ export default function CounselorStudentsPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('email')}>Email<SortIcon field="email" /></th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Mobile</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700" onClick={() => toggleSort('createdAt')}>Created On<SortIcon field="createdAt" /></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Payment</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No students found</td></tr>
+                    <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No students found</td></tr>
                   ) : (
                     filtered.map((student, idx) => (
                       <tr key={student._id} className="hover:bg-gray-50 transition-colors">
@@ -247,6 +249,9 @@ export default function CounselorStudentsPage() {
                         <td className="px-4 py-3 text-sm text-gray-600">{student.email}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{student.countryCode ? `${student.countryCode} ` : ''}{student.mobile}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{student.createdAt ? new Date(student.createdAt).toLocaleDateString() : '-'}</td>
+                        <td className="px-4 py-3">
+                          <PaymentButton studentId={student._id} studentName={student.name} />
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             <button onClick={() => router.push(`/counselor/students/${student._id}/profile`)}
