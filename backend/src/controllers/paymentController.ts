@@ -6,7 +6,7 @@ import crypto from "crypto";
 import { sendEmail } from "../utils/email";
 import Razorpay from "razorpay";
 
-const LINK_VALIDITY_MINUTES = 10;
+const LINK_VALIDITY_MINUTES = 15;
 const PAYMENT_AMOUNT = parseInt(process.env.PAYMENT_AMOUNT || "100", 10); // Amount in INR
 const PAYMENT_CURRENCY = process.env.PAYMENT_CURRENCY || "INR";
 
