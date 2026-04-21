@@ -131,7 +131,11 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
 
     // Create Razorpay payment link
     const razorpay = getRazorpayInstance();
+    // Internal expiry: 15 minutes for our DB tracking
     const expiresAt = new Date(now.getTime() + LINK_VALIDITY_MINUTES * 60 * 1000);
+    // Razorpay expire_by: must be strictly MORE than 15 minutes in the future.
+    // Add 5 extra minutes as buffer to account for clock skew / network latency.
+    const razorpayExpiresAt = new Date(now.getTime() + (LINK_VALIDITY_MINUTES + 5) * 60 * 1000);
 
     const paymentLink = await (razorpay.paymentLink as any).create({
       amount: PAYMENT_AMOUNT * 100, // Razorpay accepts amount in paise
@@ -156,7 +160,7 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
       },
       callback_url: `${process.env.FRONTEND_URL}/payment/verify?studentId=${studentId}`,
       callback_method: "get",
-      expire_by: Math.floor(expiresAt.getTime() / 1000),
+      expire_by: Math.floor(razorpayExpiresAt.getTime() / 1000),
     });
 
     // Save payment record
