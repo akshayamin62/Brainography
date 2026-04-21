@@ -75,9 +75,9 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
 
   const date = new Date(payment.paidAt);
   const dateStr = date.toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const invoiceNo = `IMPACT/${payment._id.slice(-6).toUpperCase()}/${date.getFullYear()}-${String(date.getFullYear() + 1).slice(-2)}`;
+  const invoiceNo = `ADM/${payment._id.slice(-6).toUpperCase()}/${date.getFullYear()}-${String(date.getFullYear() + 1).slice(-2)}`;
 
-  const isGujarat = (student.state || "").toLowerCase().includes("gujarat");
+  const isGujarat = ["gj", "gujarat"].includes((student.state || "").toLowerCase().trim());
   const discountAmount = 0;
 
   let baseAmount: number;
@@ -170,16 +170,17 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
 
   doc.setTextColor(navy[0], navy[1], navy[2]);
   doc.setFontSize(10);
-  doc.text("IMPACT", billByX + 6, y + 16);
+  doc.text("KAREER Studio", billByX + 6, y + 16);
 
   doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text("Fingerprint Intelligence Assessment", billByX + 6, y + 23);
-  doc.text("India", billByX + 6, y + 29);
-  doc.text("contact@impactassessment.in", billByX + 6, y + 35);
-  doc.text("PAN: XXXXXXXXXX", billByX + 6, y + 41);
-  doc.text("GST No: XXXXXXXXXXXXXX", billByX + 6, y + 47);
+  doc.text("Suite #303, Rajshree Center, Opp. Hotel Effotel,", billByX + 6, y + 23);
+  doc.text("Near Kalaghoda, Sayajigunj, Vadodara - 390020", billByX + 6, y + 29);
+  doc.text("Gujarat, India", billByX + 6, y + 35);
+  doc.text("hello@kareerstudio.com | +91 7777 07 1711", billByX + 6, y + 41);
+  doc.text("PAN: AAZFK7452R", billByX + 6, y + 47);
+  doc.text("GST No: ASDFGHJKL", billByX + 6, y + 53);
 
   y += billBoxH + 8;
 
@@ -359,14 +360,12 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
-  doc.text("Beneficiary: IMPACT", margin + 6, y + 15);
-  doc.text("Payment Mode: Razorpay Payment Gateway", margin + 6, y + 21);
-  doc.text("Status: PAID", margin + 6, y + 27);
+  doc.text("Beneficiary: KAREER Studio", margin + 6, y + 15);
+  doc.text("Axis Bank Current Account Number: 923020061117712", margin + 6, y + 21);
+  doc.text("SAVLI BRANCH, VADODARA  |  IFSC: UTIB0004011  |  SWIFT: AXISINBB013", margin + 6, y + 27);
 
-  if (payment.razorpayPaymentId) {
-    doc.text(`Razorpay ID: ${payment.razorpayPaymentId}`, margin + contentW - 65, y + 15);
-  }
-  doc.text(`Payment Date: ${dateStr}`, margin + contentW - 65, y + 21);
+  doc.text("UPI ID: 7777071711@okbizaxis", margin + contentW - 65, y + 15);
+  doc.text("UPI Number: +91 7777 07 1711", margin + contentW - 65, y + 21);
 
   y += 40;
 
@@ -388,12 +387,12 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   doc.setTextColor(navy[0], navy[1], navy[2]);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("For IMPACT", sigX, footerY - 22, { align: "right" });
-  doc.text("Authorized Signatory", sigX, footerY - 10, { align: "right" });
+  doc.text("For ADMITra", sigX, footerY - 22, { align: "right" });
+  doc.text("Makrand Bhatt", sigX, footerY - 10, { align: "right" });
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
-  doc.text("IMPACT Assessment Team", sigX, footerY - 5, { align: "right" });
+  doc.text("Authorized Signatory", sigX, footerY - 5, { align: "right" });
 
   doc.setFillColor(navy[0], navy[1], navy[2]);
   doc.rect(0, footerY, W, 12, "F");
@@ -401,7 +400,7 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.text(
-    "IMPACT Fingerprint Intelligence Assessment  |  contact@impactassessment.in",
+    "Reg. Office: KAREER Studio, Suite #303, Rajshree Center, Opp. Hotel Effotel, Near Kalaghoda, Sayajigunj, Vadodara - 390020  |  hello@kareerstudio.com  |  +91 7777 07 1711",
     W / 2, footerY + 7,
     { align: "center" }
   );

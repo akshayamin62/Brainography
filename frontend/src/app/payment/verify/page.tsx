@@ -16,7 +16,7 @@ function PaymentVerifyContent() {
         const res = await paymentAPI.verifyPayment(params);
         if (res.data.success && res.data.data?.status === 'paid') {
           setStatus('paid');
-          setMessage('Your payment has been successfully completed!');
+          setMessage('Your payment has been successfully completed! Check your email for receipt');
         } else {
           setStatus(res.data.data?.status === 'pending' ? 'pending' : 'failed');
           setMessage(res.data.message || 'Payment verification is pending.');
