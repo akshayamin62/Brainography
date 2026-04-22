@@ -6,7 +6,7 @@ import { paymentAPI } from '@/lib/api';
 
 function PaymentVerifyContent() {
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<'loading' | 'paid' | 'failed' | 'pending'>('loading');
+  const [status, setStatus] = useState<'loading' | 'paid' | 'failed' | 'pending' | 'expired'>('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -16,14 +16,23 @@ function PaymentVerifyContent() {
         const res = await paymentAPI.verifyPayment(params);
         if (res.data.success && res.data.data?.status === 'paid') {
           setStatus('paid');
-          setMessage('Your payment has been successfully completed! Check your email for receipt');
+          setMessage('Your payment has been successfully completed! Check your email for receipt.');
+        } else if (res.data.data?.status === 'expired') {
+          setStatus('expired');
+          setMessage(res.data.message || 'This payment link has expired. Please request a new payment link from your counsellor.');
         } else {
           setStatus(res.data.data?.status === 'pending' ? 'pending' : 'failed');
           setMessage(res.data.message || 'Payment verification is pending.');
         }
-      } catch {
-        setStatus('failed');
-        setMessage('Unable to verify payment. Please contact support.');
+      } catch (err: any) {
+        // HTTP 410 Gone → expired
+        if (err?.response?.status === 410 || err?.response?.data?.data?.status === 'expired') {
+          setStatus('expired');
+          setMessage(err?.response?.data?.message || 'This payment link has expired. Please request a new payment link from your counsellor.');
+        } else {
+          setStatus('failed');
+          setMessage('Unable to verify payment. Please contact support.');
+        }
       }
     };
     verify();
@@ -78,6 +87,19 @@ function PaymentVerifyContent() {
             </div>
             <h2 className="text-xl font-bold text-red-700 mb-2">Payment Failed</h2>
             <p className="text-gray-600">{message}</p>
+          </div>
+        )}
+
+        {status === 'expired' && (
+          <div className="py-8">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-orange-700 mb-2">Payment Link Expired</h2>
+            <p className="text-gray-600">{message}</p>
+            <p className="text-sm text-gray-400 mt-4">Please contact your counsellor to generate a new payment link.</p>
           </div>
         )}
       </div>

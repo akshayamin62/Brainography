@@ -150,9 +150,9 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
     const razorpay = getRazorpayInstance();
     // Internal expiry: 15 minutes for our DB tracking
     const expiresAt = new Date(now.getTime() + LINK_VALIDITY_MINUTES * 60 * 1000);
-    // Razorpay expire_by: must be strictly MORE than 15 minutes in the future.
-    // Add 5 extra minutes as buffer to account for clock skew / network latency.
-    const razorpayExpiresAt = new Date(now.getTime() + (LINK_VALIDITY_MINUTES + 5) * 60 * 1000);
+    // Razorpay expire_by must match our linkExpiresAt so the hosted page
+    // also becomes unavailable at the same time.
+    const razorpayExpiresAt = expiresAt;
 
     const { baseAmount: PAYMENT_AMOUNT, gstEnabled } = await getAppSettings();
     const totalAmount = gstEnabled ? Math.round(PAYMENT_AMOUNT * 1.18) : PAYMENT_AMOUNT;
@@ -433,10 +433,27 @@ export const verifyPayment = async (req: Request, res: Response): Promise<Respon
       return res.status(400).json({ success: false, message: "Student ID is required" });
     }
 
+    // Mark any stale pending payments as expired
+    const now = new Date();
+    await Payment.updateMany(
+      { studentId: studentId as string, status: "pending", linkExpiresAt: { $lte: now } },
+      { $set: { status: "expired" } }
+    );
+
     // If razorpay provides the payment link status as paid
     if (razorpay_payment_link_status === "paid" && razorpay_payment_link_id) {
       const payment = await Payment.findOne({ razorpayLinkId: razorpay_payment_link_id as string });
       if (payment) {
+        // If the link was already expired in our system, reject — the user paid on an expired link.
+        // This can happen if Razorpay somehow processed a payment after our expiry.
+        if (payment.status === "expired") {
+          return res.status(410).json({
+            success: false,
+            message: "This payment link has expired. Please request a new payment link from your counsellor.",
+            data: { status: "expired" },
+          });
+        }
+
         // Verify signature
         const secret = process.env.RAZORPAY_KEY_SECRET;
         if (secret && razorpay_payment_link_id && razorpay_payment_id && razorpay_signature) {
@@ -471,6 +488,14 @@ export const verifyPayment = async (req: Request, res: Response): Promise<Respon
     const payment = await Payment.findOne({ studentId: studentId as string }).sort({ createdAt: -1 });
     if (payment?.status === "paid") {
       return res.json({ success: true, message: "Payment already completed", data: { status: "paid" } });
+    }
+
+    if (payment?.status === "expired") {
+      return res.status(410).json({
+        success: false,
+        message: "This payment link has expired. Please request a new payment link from your counsellor.",
+        data: { status: "expired" },
+      });
     }
 
     return res.json({ success: false, message: "Payment verification pending", data: { status: payment?.status || "unknown" } });
