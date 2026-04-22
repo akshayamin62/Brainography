@@ -184,11 +184,17 @@ export const createCounselorForAdmin = async (req: AuthRequest, res: Response): 
 export const updateCounselor = async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
     const { id } = req.params;
-    const adminId = req.user?.userId;
+    const requesterId = req.user?.userId;
+    const requesterRole = req.user?.role;
     const { firstName, middleName, lastName, email, phone, isActive } = req.body;
 
     const counselor = await User.findById(id);
-    if (!counselor || counselor.role !== "COUNSELOR" || counselor.createdBy?.toString() !== adminId) {
+    if (!counselor || counselor.role !== "COUNSELOR") {
+      return res.status(404).json({ success: false, message: "Counselor not found" });
+    }
+
+    // Admins can only update their own counselors; super-admins can update any
+    if (requesterRole !== "SUPER_ADMIN" && counselor.createdBy?.toString() !== requesterId) {
       return res.status(404).json({ success: false, message: "Counselor not found" });
     }
 
