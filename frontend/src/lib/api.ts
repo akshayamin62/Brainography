@@ -77,8 +77,10 @@ export const adminAPI = {
 
 export const counselorAPI = {
   list: () => api.get('/counselors'),
+  listAll: () => api.get('/counselors/all'),
   get: (id: string) => api.get(`/counselors/${id}`),
   create: (data: any) => api.post('/counselors', data),
+  createForAdmin: (data: any) => api.post('/counselors/super-admin', data),
   update: (id: string, data: any) => api.put(`/counselors/${id}`, data),
 };
 

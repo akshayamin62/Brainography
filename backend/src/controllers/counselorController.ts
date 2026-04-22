@@ -33,6 +33,39 @@ export const listCounselors = async (req: AuthRequest, res: Response): Promise<R
   }
 };
 
+// GET /api/counselors/all - List ALL counselors across all admins (Super Admin only)
+export const listAllCounselors = async (_req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const counselors = await User.find({ role: "COUNSELOR" })
+      .select("-otp -otpExpires")
+      .sort({ createdAt: -1 });
+
+    const counselorIds = counselors.map(c => c._id);
+    const studentCounts = await Student.aggregate([
+      { $match: { counselorId: { $in: counselorIds } } },
+      { $group: { _id: "$counselorId", count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map(studentCounts.map(sc => [sc._id.toString(), sc.count]));
+
+    // Fetch admin names for createdBy
+    const adminIds = [...new Set(counselors.map(c => c.createdBy?.toString()).filter(Boolean))];
+    const admins = await User.find({ _id: { $in: adminIds } }).select("name email");
+    const adminMap = new Map(admins.map(a => [a._id.toString(), a.name]));
+
+    const counselorsWithDetails = counselors.map(c => {
+      const obj = c.toObject();
+      (obj as any).studentCount = countMap.get(c._id.toString()) || 0;
+      (obj as any).adminName = adminMap.get(c.createdBy?.toString() || "") || "—";
+      return obj;
+    });
+
+    return res.json({ success: true, data: counselorsWithDetails });
+  } catch (err) {
+    console.error("List all counselors error:", err);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 // GET /api/counselors/:id - Get single counselor
 export const getCounselor = async (req: AuthRequest, res: Response): Promise<Response> => {
   try {
@@ -93,6 +126,56 @@ export const createCounselor = async (req: AuthRequest, res: Response): Promise<
     });
   } catch (err) {
     console.error("Create counselor error:", err);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// POST /api/counselors/super-admin - Create a counselor under a specific admin (Super Admin only)
+export const createCounselorForAdmin = async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const { firstName, middleName, lastName, email, phone, adminId } = req.body;
+
+    if (!firstName || !lastName || !email || !phone || !adminId) {
+      return res.status(400).json({ success: false, message: "First name, last name, email, phone, and admin are required" });
+    }
+
+    const admin = await User.findById(adminId);
+    if (!admin || admin.role !== "ADMIN") {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return res.status(409).json({ success: false, message: "Email already in use" });
+    }
+
+    const name = [firstName, middleName, lastName].filter(Boolean).join(" ");
+
+    const counselor = new User({
+      name,
+      email: email.toLowerCase(),
+      phone: phone || undefined,
+      role: "COUNSELOR",
+      isActive: true,
+      isVerified: false,
+      createdBy: adminId,
+    });
+
+    await counselor.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Counselor created successfully",
+      data: {
+        id: counselor._id,
+        name: counselor.name,
+        email: counselor.email,
+        phone: counselor.phone,
+        role: counselor.role,
+      },
+    });
+  } catch (err) {
+    console.error("Create counselor for admin error:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
