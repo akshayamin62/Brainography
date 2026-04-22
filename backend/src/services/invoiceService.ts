@@ -273,7 +273,7 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   doc.setFont("helvetica", "normal");
 
   cx = margin;
-  doc.text("IMPACT", cx + 4, y + 7);
+  doc.text("IMPACT - Brainography Assessment", cx + 4, y + 7);
   cx += col1W;
   doc.line(cx, y, cx, y + rowH);
   doc.text("1", cx + 8, y + 7);

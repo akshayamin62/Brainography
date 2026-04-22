@@ -93,7 +93,7 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
             subject: "Payment Link - Brainography",
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2563eb;">Brainography - Payment Link</h2>
+                <h2 style="color: #2563eb;">Brainography Assessment- Payment Link</h2>
                 <p>Dear ${student.firstName} ${student.lastName},</p>
                 <p>A payment link has been generated for you. Please complete the payment using the link below:</p>
                 <div style="text-align: center; margin: 30px 0;">
@@ -208,7 +208,7 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
         subject: "Payment Link - Brainography",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">Brainography - Payment Link</h2>
+            <h2 style="color: #2563eb;">Brainography Assessment - Payment Link</h2>
             <p>Dear ${student.firstName} ${student.lastName},</p>
             <p>A payment link has been generated for you. Please complete the payment using the link below:</p>
             <div style="text-align: center; margin: 30px 0;">
