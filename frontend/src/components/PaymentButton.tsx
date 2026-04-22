@@ -123,8 +123,8 @@ export default function PaymentButton({ studentId, studentName }: PaymentButtonP
     );
   }
 
-  // Can generate link
-  if (paymentStatus?.canGenerateLink !== false) {
+  // Can generate / re-generate link (also covers expired/failed state)
+  if (paymentStatus?.canGenerateLink !== false || paymentStatus?.status === 'expired' || paymentStatus?.status === 'failed') {
     return (
       <button
         onClick={handleGenerate}
@@ -147,13 +147,10 @@ export default function PaymentButton({ studentId, studentName }: PaymentButtonP
     );
   }
 
-  // Default fallback (expired/failed but timer hasn't refetched yet)
+  // Absolute fallback — should not normally be reached
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-500 rounded-lg text-xs font-medium">
-      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      Expired
+    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-400 rounded-lg text-xs">
+      —
     </span>
   );
 }

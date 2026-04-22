@@ -150,9 +150,11 @@ export const generatePaymentLink = async (req: AuthRequest, res: Response): Prom
     const razorpay = getRazorpayInstance();
     // Internal expiry: 15 minutes for our DB tracking
     const expiresAt = new Date(now.getTime() + LINK_VALIDITY_MINUTES * 60 * 1000);
-    // Razorpay expire_by must match our linkExpiresAt so the hosted page
-    // also becomes unavailable at the same time.
-    const razorpayExpiresAt = expiresAt;
+    // Razorpay requires expire_by to be STRICTLY more than 15 minutes in the future.
+    // Add 1 extra minute as the minimum buffer to satisfy their API constraint.
+    // Our verifyPayment already rejects callbacks where our DB status is 'expired',
+    // so this 1-minute window on Razorpay's side cannot be used to complete a payment.
+    const razorpayExpiresAt = new Date(now.getTime() + (LINK_VALIDITY_MINUTES + 1) * 60 * 1000);
 
     const { baseAmount: PAYMENT_AMOUNT, gstEnabled } = await getAppSettings();
     const totalAmount = gstEnabled ? Math.round(PAYMENT_AMOUNT * 1.18) : PAYMENT_AMOUNT;
