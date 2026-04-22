@@ -5,8 +5,22 @@ import Student from "../models/Student";
 import crypto from "crypto";
 import { sendEmail } from "../utils/email";
 import Razorpay from "razorpay";
-import { generateInvoicePDF } from "../services/invoiceService";
+import { generateInvoicePDF, generateInvoiceNumber } from "../services/invoiceService";
 import { getAppSettings } from "./settingsController";
+
+/**
+ * Returns the invoice number for a paid payment.
+ * If one hasn't been assigned yet, generates a new sequential number,
+ * persists it on the payment document, and returns it.
+ * This makes every subsequent call (download, resend, webhook) use the same number.
+ */
+async function getOrCreateInvoiceNo(payment: InstanceType<typeof import("../models/Payment").default>): Promise<string> {
+  if (payment.invoiceNo) return payment.invoiceNo;
+  const no = await generateInvoiceNumber(payment.paidAt ?? new Date());
+  payment.invoiceNo = no;
+  await payment.save();
+  return no;
+}
 
 const LINK_VALIDITY_MINUTES = 15;
 const PAYMENT_CURRENCY = process.env.PAYMENT_CURRENCY || "INR";
@@ -348,6 +362,7 @@ export const razorpayWebhook = async (req: Request, res: Response): Promise<Resp
             const student = await Student.findById(payment.studentId);
             if (student?.email) {
               const { gstEnabled: webhookGstEnabled } = await getAppSettings();
+              const invoiceNo = await getOrCreateInvoiceNo(payment);
               const pdfBuffer = await generateInvoicePDF({
                 student: {
                   name: `${student.firstName} ${student.lastName}`,
@@ -366,6 +381,7 @@ export const razorpayWebhook = async (req: Request, res: Response): Promise<Resp
                   paidAt: payment.paidAt!,
                 },
                 gstEnabled: webhookGstEnabled,
+                invoiceNo,
               });
               await sendEmail({
                 to: student.email,
@@ -513,6 +529,7 @@ export const downloadInvoice = async (req: AuthRequest, res: Response): Promise<
     }
 
     const { gstEnabled: downloadGstEnabled } = await getAppSettings();
+    const invoiceNo = await getOrCreateInvoiceNo(payment);
     const pdfBuffer = await generateInvoicePDF({
       student: {
         name: `${student.firstName} ${student.lastName}`,
@@ -531,6 +548,7 @@ export const downloadInvoice = async (req: AuthRequest, res: Response): Promise<
         paidAt: payment.paidAt!,
       },
       gstEnabled: downloadGstEnabled,
+      invoiceNo,
     });
 
     res.set({
@@ -557,6 +575,7 @@ export const sendInvoiceToStudent = async (req: AuthRequest, res: Response): Pro
     if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
     const { gstEnabled: sendGstEnabled } = await getAppSettings();
+    const invoiceNo = await getOrCreateInvoiceNo(payment);
     const pdfBuffer = await generateInvoicePDF({
       student: {
         name: `${student.firstName} ${student.lastName}`,
@@ -575,6 +594,7 @@ export const sendInvoiceToStudent = async (req: AuthRequest, res: Response): Pro
         paidAt: payment.paidAt!,
       },
       gstEnabled: sendGstEnabled,
+      invoiceNo,
     });
 
     await sendEmail({

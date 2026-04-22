@@ -22,6 +22,8 @@ export interface IPayment extends Document {
   paymentLinkUrl: string;
   // Short link URL
   shortUrl?: string;
+  // Stable invoice number generated once on first invoice creation
+  invoiceNo?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -91,6 +93,10 @@ const paymentSchema = new Schema<IPayment>(
       required: true,
     },
     shortUrl: {
+      type: String,
+      default: undefined,
+    },
+    invoiceNo: {
       type: String,
       default: undefined,
     },
