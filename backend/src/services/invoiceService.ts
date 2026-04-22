@@ -2,6 +2,36 @@
 const { jsPDF } = require("jspdf");
 import * as fs from "fs";
 import * as path from "path";
+import InvoiceCounter from "../models/InvoiceCounter";
+
+/** Returns the financial year string for a given date, e.g. "2026-27" */
+function getFinancialYear(date: Date): string {
+  const month = date.getMonth(); // 0-indexed; 3 = April
+  const year = date.getFullYear();
+  if (month >= 3) {
+    // April (3) onwards → FY starts this year
+    return `${year}-${String(year + 1).slice(-2)}`;
+  } else {
+    // Jan–Mar → FY started previous year
+    return `${year - 1}-${String(year).slice(-2)}`;
+  }
+}
+
+/**
+ * Atomically increments the invoice counter for the financial year derived
+ * from `date` and returns the formatted invoice number.
+ * Format: ADMIT/IM000001/2026-27
+ */
+export async function generateInvoiceNumber(date: Date): Promise<string> {
+  const fy = getFinancialYear(date);
+  const doc = await InvoiceCounter.findOneAndUpdate(
+    { financialYear: fy },
+    { $inc: { counter: 1 } },
+    { new: true, upsert: true }
+  );
+  const seq = String(doc!.counter).padStart(6, "0");
+  return `ADMIT/IM${seq}/${fy}`;
+}
 
 export interface InvoiceStudentData {
   name: string;
@@ -25,6 +55,8 @@ export interface InvoiceData {
   student: InvoiceStudentData;
   payment: InvoicePaymentData;
   gstEnabled: boolean;
+  /** Pre-generated invoice number. If omitted, a new one is auto-generated. */
+  invoiceNo?: string;
 }
 
 function numberToWords(amount: number): string {
@@ -55,7 +87,7 @@ function numberToWords(amount: number): string {
 let _logoBase64: string | null = null;
 function getLogoBase64(): string {
   if (_logoBase64 === null) {
-    const logoPath = path.resolve(__dirname, "../../../frontend/public/logo.png");
+    const logoPath = path.resolve(__dirname, "../../../frontend/public/downloads/kareerstudio_logo.png");
     if (fs.existsSync(logoPath)) {
       _logoBase64 = `data:image/png;base64,${fs.readFileSync(logoPath).toString("base64")}`;
     } else {
@@ -63,6 +95,19 @@ function getLogoBase64(): string {
     }
   }
   return _logoBase64;
+}
+
+let _signBase64: string | null = null;
+function getSignBase64(): string {
+  if (_signBase64 === null) {
+    const signPath = path.resolve(__dirname, "../../../frontend/public/downloads/sign.png");
+    if (fs.existsSync(signPath)) {
+      _signBase64 = `data:image/png;base64,${fs.readFileSync(signPath).toString("base64")}`;
+    } else {
+      _signBase64 = "";
+    }
+  }
+  return _signBase64;
 }
 
 export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
@@ -75,7 +120,7 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
 
   const date = new Date(payment.paidAt);
   const dateStr = date.toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const invoiceNo = `ADM/${payment._id.slice(-6).toUpperCase()}/${date.getFullYear()}-${String(date.getFullYear() + 1).slice(-2)}`;
+  const invoiceNo = data.invoiceNo ?? await generateInvoiceNumber(date);
 
   const isGujarat = ["gj", "gujarat"].includes((student.state || "").toLowerCase().trim());
   const discountAmount = 0;
@@ -170,7 +215,7 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
 
   doc.setTextColor(navy[0], navy[1], navy[2]);
   doc.setFontSize(10);
-  doc.text("KAREER Studio", billByX + 6, y + 16);
+  doc.text("ADMITra", billByX + 6, y + 16);
 
   doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
   doc.setFontSize(8);
@@ -178,7 +223,7 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   doc.text("Suite #303, Rajshree Center, Opp. Hotel Effotel,", billByX + 6, y + 23);
   doc.text("Near Kalaghoda, Sayajigunj, Vadodara - 390020", billByX + 6, y + 29);
   doc.text("Gujarat, India", billByX + 6, y + 35);
-  doc.text("hello@kareerstudio.com | +91 7777 07 1711", billByX + 6, y + 41);
+  doc.text("hello@admitra.io | +91 7777 07 1711", billByX + 6, y + 41);
   doc.text("PAN: AAZFK7452R", billByX + 6, y + 47);
   doc.text("GST No: ASDFGHJKL", billByX + 6, y + 53);
 
@@ -388,6 +433,12 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.text("For ADMITra", sigX, footerY - 22, { align: "right" });
+
+  const signBase64 = getSignBase64();
+  if (signBase64) {
+    try { doc.addImage(signBase64, "PNG", sigX - 30, footerY - 20, 28, 10); } catch (_e) { /* skip */ }
+  }
+
   doc.text("Makrand Bhatt", sigX, footerY - 10, { align: "right" });
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
@@ -400,7 +451,7 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.text(
-    "Reg. Office: KAREER Studio, Suite #303, Rajshree Center, Opp. Hotel Effotel, Near Kalaghoda, Sayajigunj, Vadodara - 390020  |  hello@kareerstudio.com  |  +91 7777 07 1711",
+    "Reg. Office: ADMITra, Suite #303, Rajshree Center, Opp. Hotel Effotel, Near Kalaghoda, Sayajigunj, Vadodara - 390020  |  hello@admitra.io  |  +91 7777 07 1711",
     W / 2, footerY + 7,
     { align: "center" }
   );
