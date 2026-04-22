@@ -436,7 +436,7 @@ export async function generateInvoicePDF(data: InvoiceData): Promise<Buffer> {
 
   const signBase64 = getSignBase64();
   if (signBase64) {
-    try { doc.addImage(signBase64, "PNG", sigX - 30, footerY - 20, 28, 10); } catch (_e) { /* skip */ }
+    try { doc.addImage(signBase64, "PNG", sigX - 25, footerY - 20, 28, 10); } catch (_e) { /* skip */ }
   }
 
   doc.text("Makrand Bhatt", sigX, footerY - 10, { align: "right" });
