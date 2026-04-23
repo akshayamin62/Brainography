@@ -4,6 +4,7 @@ import { authorize } from "../middleware/authorize";
 import { USER_ROLE } from "../types/roles";
 import {
   generatePaymentLink,
+  generateReviewerPaymentLink,
   getPaymentStatus,
   getPaymentLogs,
   razorpayWebhook,
@@ -21,6 +22,13 @@ router.post(
   authenticate,
   authorize(USER_ROLE.SUPER_ADMIN, USER_ROLE.ADMIN, USER_ROLE.COUNSELOR),
   generatePaymentLink
+);
+
+router.post(
+  "/reviewer-link",
+  authenticate,
+  authorize(USER_ROLE.REVIEWER),
+  generateReviewerPaymentLink
 );
 
 router.get(

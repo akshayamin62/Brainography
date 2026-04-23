@@ -2,6 +2,7 @@ export enum USER_ROLE {
   SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
   COUNSELOR = 'COUNSELOR',
+  REVIEWER = 'REVIEWER',
 }
 
 export interface AdminDetail {

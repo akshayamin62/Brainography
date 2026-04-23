@@ -8,6 +8,8 @@ import Razorpay from "razorpay";
 import { generateInvoicePDF, generateInvoiceNumber } from "../services/invoiceService";
 import { getAppSettings } from "./settingsController";
 
+const REVIEWER_EMAIL = "reviewer@admitra.io";
+
 /**
  * Returns the invoice number for a paid payment.
  * If one hasn't been assigned yet, generates a new sequential number,
@@ -51,6 +53,51 @@ const extractErrorMessage = (err: any): string => {
 const sanitizePhone = (countryCode: string, mobile: string): string => {
   const combined = `${countryCode}${mobile}`.replace(/[^\d]/g, "");
   return combined;
+};
+
+// POST /api/payments/reviewer-link
+export const generateReviewerPaymentLink = async (req: AuthRequest, res: Response): Promise<Response> => {
+  try {
+    const requesterEmail = req.user?.email?.toLowerCase();
+
+    if (requesterEmail !== REVIEWER_EMAIL) {
+      return res.status(403).json({ success: false, message: "Unauthorized reviewer access" });
+    }
+
+    const razorpay = getRazorpayInstance();
+    const { baseAmount: PAYMENT_AMOUNT, gstEnabled } = await getAppSettings();
+    const totalAmount = gstEnabled ? Math.round(PAYMENT_AMOUNT * 1.18) : PAYMENT_AMOUNT;
+
+    const paymentLink = await (razorpay.paymentLink as any).create({
+      amount: totalAmount * 100,
+      currency: PAYMENT_CURRENCY,
+      accept_partial: false,
+      description: "Brainography Assessment Reviewer Payment",
+      customer: {
+        name: "Razorpay Reviewer",
+        email: REVIEWER_EMAIL,
+      },
+      notify: {
+        sms: false,
+        email: false,
+      },
+      reminder_enable: false,
+      callback_url: `${process.env.FRONTEND_URL}/reviewer/payment`,
+      callback_method: "get",
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        paymentUrl: paymentLink.short_url || paymentLink.url,
+        amount: totalAmount,
+        currency: PAYMENT_CURRENCY,
+      },
+    });
+  } catch (err: any) {
+    console.error("Generate reviewer payment link error:", JSON.stringify(err?.error || err?.message || err));
+    return res.status(500).json({ success: false, message: extractErrorMessage(err) });
+  }
 };
 
 // POST /api/payments/generate-link/:studentId

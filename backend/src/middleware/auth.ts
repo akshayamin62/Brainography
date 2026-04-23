@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwt";
 import User from "../models/User";
 
+const REVIEWER_EMAIL = "reviewer@admitra.io";
+
 // Extend Express Request to include user and multer file
 export interface AuthRequest extends Request {
   user?: {
@@ -75,7 +77,7 @@ export const authenticate = async (
     req.user = {
       userId: user._id.toString(),
       email: user.email,
-      role: user.role,
+      role: user.email.toLowerCase() === REVIEWER_EMAIL ? "REVIEWER" : user.role,
     };
 
     next();

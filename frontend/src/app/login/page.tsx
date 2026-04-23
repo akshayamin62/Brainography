@@ -4,6 +4,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
+import PublicFooter from '@/components/PublicFooter';
+
+const REVIEWER_EMAIL = 'reviewer@admitra.io';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -122,7 +125,9 @@ export default function LoginPage() {
       toast.success('Login successful!');
       
       setTimeout(() => {
-        if (user.role === 'SUPER_ADMIN') {
+        if (user.role === 'REVIEWER' || user.email?.toLowerCase() === REVIEWER_EMAIL) {
+          router.push('/reviewer/payment');
+        } else if (user.role === 'SUPER_ADMIN') {
           router.push('/super-admin/dashboard');
         } else if (user.role === 'ADMIN') {
           router.push('/admin/dashboard');
@@ -141,16 +146,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-cyan-50">
       <Toaster position="top-right" />
       
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl animate-float" style={{animationDelay: '1.5s'}}></div>
-      </div>
+      <div className="relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl animate-float" style={{animationDelay: '1.5s'}}></div>
+        </div>
 
-      <div className="relative max-w-md w-full">
+        <div className="relative mx-auto flex min-h-[calc(100vh-73px)] max-w-5xl items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="flex justify-center mb-4">
@@ -395,6 +402,9 @@ export default function LoginPage() {
           )}
         </div>
       </div>
+        </div>
+      </div>
+      <PublicFooter />
     </div>
   );
 }

@@ -120,6 +120,7 @@ export const reportAPI = {
 
 export const paymentAPI = {
   generateLink: (studentId: string) => api.post(`/payments/generate-link/${studentId}`),
+  createReviewerLink: () => api.post('/payments/reviewer-link'),
   getStatus: (studentId: string) => api.get(`/payments/status/${studentId}`),
   getLogs: (studentId: string) => api.get(`/payments/logs/${studentId}`),
   getAllLogs: () => api.get('/payments/all-logs'),

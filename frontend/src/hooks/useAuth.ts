@@ -37,6 +37,7 @@ export function useAuth(requiredRole?: string) {
           if (userData.role === 'SUPER_ADMIN') router.replace('/super-admin/dashboard');
           else if (userData.role === 'ADMIN') router.replace('/admin/dashboard');
           else if (userData.role === 'COUNSELOR') router.replace('/counselor/dashboard');
+          else if (userData.role === 'REVIEWER') router.replace('/reviewer/payment');
           else router.replace('/dashboard');
           return;
         }

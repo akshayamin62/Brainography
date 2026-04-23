@@ -11,6 +11,12 @@ import {
   getOTPExpiration,
 } from "../utils/otp";
 import { AuthRequest } from "../middleware/auth";
+import { USER_ROLE } from "../types/roles";
+
+const REVIEWER_EMAIL = "reviewer@admitra.io";
+const REVIEWER_FIXED_OTP = "123456";
+
+const isReviewerEmail = (email: string): boolean => email.toLowerCase() === REVIEWER_EMAIL;
 
 // Server-side captcha store: Map<captchaId, { text, expiresAt }>
 const captchaStore = new Map<string, { text: string; expiresAt: number }>();
@@ -95,12 +101,30 @@ export const login = async (req: LoginRequest, res: Response): Promise<Response>
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase();
+    let user = await User.findOne({ email: normalizedEmail });
+
+    // Auto-provision reviewer account for Razorpay review if it doesn't exist yet
+    if (!user && normalizedEmail === REVIEWER_EMAIL) {
+      user = await User.create({
+        name: "Razorpay Reviewer",
+        email: REVIEWER_EMAIL,
+        role: USER_ROLE.REVIEWER,
+        isActive: true,
+        isVerified: true,
+      });
+    }
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: "Account not found.",
       });
+    }
+
+    if (isReviewerEmail(user.email) && user.role !== USER_ROLE.REVIEWER) {
+      user.role = USER_ROLE.REVIEWER;
+      await user.save();
     }
 
     if (!user.isActive) {
@@ -110,8 +134,10 @@ export const login = async (req: LoginRequest, res: Response): Promise<Response>
       });
     }
 
-    // Generate OTP
-    const otp = generateOTP();
+    // Generate OTP (fixed OTP for Razorpay reviewer account)
+    const otp = isReviewerEmail(user.email)
+      ? REVIEWER_FIXED_OTP
+      : generateOTP();
     const hashedOTP = await hashOTP(otp);
     const otpExpires = getOTPExpiration(10);
 
@@ -184,6 +210,10 @@ export const verifyOTP = async (req: VerifyOTPRequest, res: Response): Promise<R
       });
     }
 
+    if (isReviewerEmail(user.email) && user.role !== USER_ROLE.REVIEWER) {
+      user.role = USER_ROLE.REVIEWER;
+    }
+
     // Mark verified on first login
     if (!user.isVerified) {
       user.isVerified = true;
@@ -205,7 +235,7 @@ export const verifyOTP = async (req: VerifyOTPRequest, res: Response): Promise<R
           name: user.name,
           email: user.email,
           phone: user.phone,
-          role: user.role,
+          role: isReviewerEmail(user.email) ? USER_ROLE.REVIEWER : user.role,
         },
         token,
       },
@@ -247,7 +277,7 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<Respo
           name: user.name,
           email: user.email,
           phone: user.phone,
-          role: user.role,
+          role: isReviewerEmail(user.email) ? USER_ROLE.REVIEWER : user.role,
           isVerified: user.isVerified,
           isActive: user.isActive,
           createdAt: user.createdAt,
