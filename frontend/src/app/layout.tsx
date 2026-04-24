@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Brainography",
-  description: "Admin Panel",
+  title: "IMPACT Brainography",
+  description: "A guided education and career planning platform for students, parents, counselors, and institutions.",
   icons: {
     icon: [
       { url: "/thumbnail.png?v=2", type: "image/png", sizes: "32x32" },
@@ -24,8 +24,8 @@ export const metadata: Metadata = {
     apple: [{ url: "/thumbnail.png?v=2", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
-    title: "Brainography",
-    description: "Admin Panel",
+    title: "IMPACT Brainography",
+    description: "A guided education and career planning platform for students, parents, counselors, and institutions.",
     images: [
       {
         url: "/thumbnail.png?v=2",
@@ -37,8 +37,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Brainography",
-    description: "Admin Panel",
+    title: "IMPACT Brainography",
+    description: "A guided education and career planning platform for students, parents, counselors, and institutions.",
     images: ["/thumbnail.png?v=2"],
   },
 };

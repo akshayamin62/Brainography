@@ -126,7 +126,7 @@ export default function LoginPage() {
       
       setTimeout(() => {
         if (user.role === 'REVIEWER' || user.email?.toLowerCase() === REVIEWER_EMAIL) {
-          router.push('/reviewer/payment');
+          router.push('/');
         } else if (user.role === 'SUPER_ADMIN') {
           router.push('/super-admin/dashboard');
         } else if (user.role === 'ADMIN') {
