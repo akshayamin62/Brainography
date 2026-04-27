@@ -143,9 +143,6 @@ export default function Home() {
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="animate-fade-in">
-              <span className="inline-flex items-center rounded-full border border-blue-200 bg-white/80 px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm backdrop-blur">
-                IMPACT Brainography for students, parents, counselors, and institutions
-              </span>
               <h1 className="mt-6 max-w-3xl text-4xl font-black leading-tight text-slate-950 sm:text-5xl lg:text-6xl">
                 Take a guided route to education, career, and life decisions.
               </h1>
@@ -242,9 +239,6 @@ export default function Home() {
 
       <section className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-            What the assessment helps uncover
-          </span>
           <h2 className="mt-4 text-3xl font-black text-slate-950 sm:text-4xl">
             Six dimensions that influence study fit and future direction
           </h2>
@@ -274,9 +268,6 @@ export default function Home() {
       <section className="bg-slate-50 py-18 lg:py-24">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-slate-200 sm:p-10">
-            <span className="inline-flex rounded-full bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700">
-              Methodology
-            </span>
             <h2 className="mt-4 text-3xl font-black text-slate-950">A structured process, not a vague opinion</h2>
             <p className="mt-5 text-lg leading-8 text-slate-600">
               The assessment approach combines planning logic, educational principles, expert review,
@@ -323,9 +314,6 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
         <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
           <div>
-            <span className="inline-flex rounded-full bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
-              Need for planning
-            </span>
             <h2 className="mt-4 text-3xl font-black text-slate-950 sm:text-4xl">
               Insight is the first step. A plan is what creates movement.
             </h2>
@@ -354,9 +342,6 @@ export default function Home() {
       <section className="bg-[linear-gradient(180deg,_#eff6ff_0%,_#f8fafc_100%)] py-18 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm">
-              How it works
-            </span>
             <h2 className="mt-4 text-3xl font-black text-slate-950 sm:text-4xl">
               A simple guided journey from assessment to action
             </h2>
@@ -378,9 +363,6 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
         <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
           <div>
-            <span className="inline-flex rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-              Stages of education & career planning
-            </span>
             <h2 className="mt-4 text-3xl font-black text-slate-950 sm:text-4xl">
               Progress becomes easier when the next stage is visible.
             </h2>
@@ -411,9 +393,6 @@ export default function Home() {
         <div className="overflow-hidden rounded-[2.5rem] bg-[linear-gradient(135deg,_#0f172a_0%,_#1d4ed8_45%,_#06b6d4_100%)] px-6 py-10 text-white shadow-2xl shadow-blue-500/20 sm:px-10 sm:py-14 lg:px-14">
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <div>
-              <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-cyan-100">
-                Ready to begin?
-              </span>
               <h2 className="mt-4 text-3xl font-black sm:text-4xl">
                 Give students a clearer route from potential to purposeful action.
               </h2>

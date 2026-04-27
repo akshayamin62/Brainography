@@ -50,6 +50,12 @@ export default function PublicFooter() {
                   Scanner Download
                 </Link>
               </li>
+              <li>
+                <Link href="/legal-disclaimer" className="group flex items-center transition-all duration-300 hover:translate-x-1 hover:text-white">
+                  <span className="mr-0 h-0.5 w-0 bg-blue-500 transition-all duration-300 group-hover:mr-2 group-hover:w-4" />
+                  Legal Disclaimer
+                </Link>
+              </li>
             </ul>
           </div>
 
